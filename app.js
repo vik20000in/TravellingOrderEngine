@@ -6,10 +6,10 @@
 // ─── CONFIGURATION ──────────────────────────────────────────
 
 /** Replace with your deployed Google Apps Script Web App URL */
-const API_URL = "PASTE_YOUR_APPS_SCRIPT_URL";
+const API_URL = "https://script.google.com/macros/s/AKfycbwJ8B1pJQO8IMRrWS5azpGWAr4r_XTsv9PH8PqQmMZ9LaedpYK3gW5vUZsm-nIawvsS/exec";
 
 /** API key must match SECRET_KEY in the Apps Script backend */
-const API_KEY = "PASTE_YOUR_SECRET_KEY";
+const API_KEY = "mySecretKey2026xyz";
 
 /** LocalStorage key for draft persistence */
 const DRAFT_KEY = "travellingorder_engine_draft";
