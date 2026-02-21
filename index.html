@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>TravellingOrder Engine</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== STICKY HEADER ===== -->
+  <header id="header">
+    <h1>TravellingOrder Engine</h1>
+    <div class="header-fields">
+      <div class="field">
+        <label for="customerName">Customer Name <span class="req">*</span></label>
+        <input type="text" id="customerName" placeholder="Enter customer name" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="orderDate">Order Date</label>
+        <input type="date" id="orderDate" />
+      </div>
+      <div class="field">
+        <label for="marketArea">Market / Area</label>
+        <input type="text" id="marketArea" placeholder="Optional" autocomplete="off" />
+      </div>
+      <div class="field field-btn">
+        <button id="btnSave" onclick="submitOrder()">
+          <span id="btnText">Save Order</span>
+          <span id="btnSpinner" class="spinner hidden"></span>
+        </button>
+      </div>
+    </div>
+    <!-- Summary bar -->
+    <div id="summaryBar" class="summary-bar"></div>
+  </header>
+
+  <!-- ===== ORDER GRID ===== -->
+  <main id="catalogContainer"></main>
+
+  <!-- ===== CONFIRMATION MODAL ===== -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Confirm Submission</h2>
+      <p id="modalSummary"></p>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-confirm" onclick="confirmSubmit()">Yes, Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
