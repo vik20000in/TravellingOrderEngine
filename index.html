@@ -26,7 +26,8 @@
       <div class="header-fields">
         <div class="field">
           <label for="customerName">Customer Name <span class="req">*</span></label>
-          <input type="text" id="customerName" placeholder="Enter customer name" autocomplete="off" />
+          <input type="text" id="customerName" placeholder="Enter customer name" autocomplete="off" list="customerSuggestions" />
+          <datalist id="customerSuggestions"></datalist>
         </div>
         <div class="field">
           <label for="orderDate">Order Date</label>
@@ -47,8 +48,10 @@
       <div id="summaryBar" class="summary-bar"></div>
     </header>
 
-    <!-- ===== ORDER GRID ===== -->
-    <main id="catalogContainer"></main>
+    <!-- ===== ORDER GRID (Excel-like) ===== -->
+    <main id="orderGridContainer">
+      <div class="loading-msg">Loading order form…</div>
+    </main>
 
   </div>
 

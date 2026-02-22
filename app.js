@@ -17,58 +17,20 @@ const DRAFT_KEY = "travellingorder_engine_draft";
 /** Auto-save interval in milliseconds */
 const AUTOSAVE_INTERVAL = 5000;
 
-// ─── CATALOG DATA ───────────────────────────────────────────
-// Dynamic catalogue – the entire UI renders from this structure.
-// Sizes per variety are NOT fixed; the grid adapts automatically.
-
-const catalog = [
-  {
-    item: "Kurti",
-    varieties: [
-      { name: "A", sizes: ["S", "M", "L", "XL"] },
-      { name: "B", sizes: ["M", "L", "XL", "XXL", "3XL"] },
-      { name: "C", sizes: ["Free"] }
-    ]
-  },
-  {
-    item: "Shirt",
-    varieties: [
-      { name: "Regular", sizes: ["S", "M", "L", "XL", "XXL"] },
-      { name: "Slim",    sizes: ["S", "M", "L", "XL"] },
-      { name: "Oversize", sizes: ["M", "L", "XL", "XXL", "3XL", "4XL"] }
-    ]
-  },
-  {
-    item: "Palazzo",
-    varieties: [
-      { name: "Cotton",  sizes: ["28", "30", "32", "34", "36", "38"] },
-      { name: "Silk",    sizes: ["S", "M", "L", "XL"] },
-      { name: "Printed", sizes: ["Free"] }
-    ]
-  }
-];
-
-/** Available color options for every variety dropdown */
-const colorOptions = [
-  "", "Red", "Blue", "Green", "Black", "White", "Yellow",
-  "Pink", "Purple", "Orange", "Maroon", "Navy", "Grey",
-  "Beige", "Brown", "Teal", "Multicolor"
-];
-
 // ─── STATE ──────────────────────────────────────────────────
-let isSubmitting = false; // prevents duplicate submissions
-let varietiesCache = [];  // cached varieties from backend
-let itemsCache = [];      // cached items from backend
-let customersCache = [];  // cached customers from backend
-let currentPage = "orders"; // current active page
+let isSubmitting = false;
+let varietiesCache = [];
+let itemsCache = [];
+let customersCache = [];
+let colorMasterList = [];
+let currentPage = "orders";
 
 // ─── INITIALIZATION ─────────────────────────────────────────
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   setDefaultDate();
-  renderCatalog();
-  restoreDraft();
-  startAutosave();
+  await loadOrderMasterData();
+  renderOrderGrid();
 });
 
 /** Set order date to today */
@@ -77,196 +39,251 @@ function setDefaultDate() {
   dateInput.value = new Date().toISOString().slice(0, 10);
 }
 
-// ─── RENDER CATALOG ─────────────────────────────────────────
-
 /**
- * Dynamically builds the entire order grid from the catalog config.
- * Each item → card; each variety → collapsible panel inside card.
+ * Load varieties, items, colors, customers from backend for the order grid.
  */
-function renderCatalog() {
-  const container = document.getElementById("catalogContainer");
-  container.innerHTML = "";
+async function loadOrderMasterData() {
+  try {
+    const [varResp, itemResp, colorResp, custResp] = await Promise.all([
+      fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getVarieties", api_key: API_KEY }), mode: "cors" }),
+      fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getItems", api_key: API_KEY }), mode: "cors" }),
+      fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getColors", api_key: API_KEY }), mode: "cors" }),
+      fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getCustomers", api_key: API_KEY }), mode: "cors" })
+    ]);
 
-  catalog.forEach((item, iIdx) => {
-    // Item card wrapper
-    const card = el("div", "item-card");
-    card.dataset.item = item.item;
+    const [varData, itemData, colorData, custData] = await Promise.all([
+      varResp.json(), itemResp.json(), colorResp.json(), custResp.json()
+    ]);
 
-    // Item header
-    const header = el("div", "item-header");
-    header.innerHTML = `
-      ${item.item}
-      <span class="item-qty-badge" id="itemBadge_${iIdx}">0</span>
-    `;
-    card.appendChild(header);
+    if (varData.status === "success") varietiesCache = varData.varieties || [];
+    if (itemData.status === "success") itemsCache = itemData.items || [];
+    if (colorData.status === "success") colorMasterList = colorData.colors || [];
+    if (custData.status === "success") customersCache = custData.customers || [];
 
-    // Varieties
-    item.varieties.forEach((variety, vIdx) => {
-      card.appendChild(buildVarietyPanel(item.item, variety, iIdx, vIdx));
-    });
-
-    container.appendChild(card);
-  });
-}
-
-/**
- * Builds a single collapsible variety panel with color, sizes, comment.
- */
-function buildVarietyPanel(itemName, variety, iIdx, vIdx) {
-  const panel = el("div", "variety-panel");
-  const uid = `${iIdx}_${vIdx}`; // unique id fragment
-
-  // Toggle button
-  const toggle = el("button", "variety-toggle");
-  toggle.type = "button";
-  toggle.innerHTML = `
-    <span>
-      Variety: ${variety.name}
-      <span class="var-qty-badge" id="varBadge_${uid}">0</span>
-    </span>
-    <span class="arrow">&#9654;</span>
-  `;
-  toggle.addEventListener("click", () => {
-    toggle.classList.toggle("expanded");
-    body.classList.toggle("open");
-  });
-  panel.appendChild(toggle);
-
-  // Body
-  const body = el("div", "variety-body");
-
-  // Color dropdown
-  body.appendChild(labelEl("Color"));
-  const sel = document.createElement("select");
-  sel.id = `color_${uid}`;
-  colorOptions.forEach(c => {
-    const o = document.createElement("option");
-    o.value = c;
-    o.textContent = c || "— Select color —";
-    sel.appendChild(o);
-  });
-  body.appendChild(sel);
-
-  // Size grid
-  body.appendChild(labelEl("Quantities"));
-  const grid = el("div", "size-grid");
-  variety.sizes.forEach(size => {
-    const cell = el("div", "size-cell");
-
-    const lbl = el("div", "size-label");
-    lbl.textContent = size;
-    cell.appendChild(lbl);
-
-    const inp = document.createElement("input");
-    inp.type = "number";
-    inp.min = "0";
-    inp.step = "1";
-    inp.value = "0";
-    inp.inputMode = "numeric";
-    inp.pattern = "[0-9]*";
-    inp.id = `qty_${uid}_${size}`;
-    inp.dataset.item = itemName;
-    inp.dataset.variety = variety.name;
-    inp.dataset.size = size;
-
-    // Visual indicator + live summary
-    inp.addEventListener("input", () => {
-      sanitizeQty(inp);
-      inp.classList.toggle("has-value", parseInt(inp.value, 10) > 0);
-      updateBadges(iIdx, vIdx);
-      updateSummaryBar();
-    });
-
-    // Select all on focus for quick overwrite
-    inp.addEventListener("focus", () => inp.select());
-
-    cell.appendChild(inp);
-    grid.appendChild(cell);
-  });
-  body.appendChild(grid);
-
-  // Comment
-  const commentGap = el("div", "row-gap");
-  body.appendChild(commentGap);
-  body.appendChild(labelEl("Comment"));
-  const ta = document.createElement("textarea");
-  ta.id = `comment_${uid}`;
-  ta.placeholder = "Optional notes…";
-  ta.rows = 2;
-  body.appendChild(ta);
-
-  panel.appendChild(body);
-  return panel;
-}
-
-// ─── HELPERS ────────────────────────────────────────────────
-
-/** Shortcut to create an element with a class */
-function el(tag, cls) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  return e;
-}
-
-/** Create a small label element */
-function labelEl(text) {
-  const l = document.createElement("label");
-  l.className = "field-label";
-  l.textContent = text;
-  return l;
-}
-
-/** Sanitize quantity input: positive integer only */
-function sanitizeQty(input) {
-  let v = parseInt(input.value, 10);
-  if (isNaN(v) || v < 0) v = 0;
-  input.value = v;
-}
-
-// ─── BADGES & SUMMARY ──────────────────────────────────────
-
-/** Update the quantity badges on variety toggle and item header */
-function updateBadges(iIdx, vIdx) {
-  const item = catalog[iIdx];
-  let itemTotal = 0;
-
-  item.varieties.forEach((variety, vi) => {
-    let varTotal = 0;
-    variety.sizes.forEach(size => {
-      const inp = document.getElementById(`qty_${iIdx}_${vi}_${size}`);
-      if (inp) varTotal += parseInt(inp.value, 10) || 0;
-    });
-
-    const varBadge = document.getElementById(`varBadge_${iIdx}_${vi}`);
-    if (varBadge) {
-      varBadge.textContent = varTotal;
-      varBadge.classList.toggle("visible", varTotal > 0);
+    // Populate customer name suggestions
+    const datalist = document.getElementById("customerSuggestions");
+    if (datalist) {
+      datalist.innerHTML = customersCache.map(c => `<option value="${c.name}">`).join("");
     }
-
-    itemTotal += varTotal;
-  });
-
-  const itemBadge = document.getElementById(`itemBadge_${iIdx}`);
-  if (itemBadge) {
-    itemBadge.textContent = itemTotal;
-    itemBadge.classList.toggle("visible", itemTotal > 0);
+  } catch (err) {
+    console.error("Failed to load master data for orders:", err);
+    showToast("Could not load master data. Check connection.", "error");
   }
 }
 
-/** Render a per-item quantity summary in the header bar */
-function updateSummaryBar() {
-  const bar = document.getElementById("summaryBar");
-  const parts = [];
+// ─── RENDER ORDER GRID (EXCEL-LIKE) ─────────────────────────
 
-  catalog.forEach((item, iIdx) => {
-    let total = 0;
-    item.varieties.forEach((v, vi) => {
-      v.sizes.forEach(s => {
-        const inp = document.getElementById(`qty_${iIdx}_${vi}_${s}`);
+/**
+ * Builds the entire order grid from master data.
+ * For each Item → a section with an Excel-like table.
+ * Rows = Variety × Color combos, Columns = sizes for that variety.
+ */
+function renderOrderGrid() {
+  const container = document.getElementById("orderGridContainer");
+
+  if (!itemsCache || itemsCache.length === 0) {
+    container.innerHTML = '<div class="loading-msg">No items found. Please add items in Master Data first.</div>';
+    return;
+  }
+
+  container.innerHTML = "";
+
+  itemsCache.forEach((item, iIdx) => {
+    const section = document.createElement("div");
+    section.className = "order-item-section";
+
+    // Item header
+    const header = document.createElement("div");
+    header.className = "order-item-header";
+    header.innerHTML = `
+      <span class="order-item-name">${item.name}${item.shortForm ? ` (${item.shortForm})` : ""}</span>
+      <span class="order-item-badge" id="orderItemBadge_${iIdx}">0</span>
+    `;
+    section.appendChild(header);
+
+    // Get item colors (default to all master colors if none set)
+    const itemColors = (item.colors && item.colors.length > 0) ? item.colors : [""];
+
+    // Get which varieties this item supports (from its sizes mapping)
+    const itemVarietyIds = item.sizes ? Object.keys(item.sizes) : [];
+
+    if (itemVarietyIds.length === 0) {
+      const msg = document.createElement("div");
+      msg.className = "loading-msg";
+      msg.textContent = "No sizes configured for this item.";
+      section.appendChild(msg);
+      container.appendChild(section);
+      return;
+    }
+
+    // Build one table per variety
+    itemVarietyIds.forEach(vid => {
+      const variety = varietiesCache.find(v => v.id === vid);
+      if (!variety) return;
+
+      const sizes = item.sizes[vid];
+      if (!sizes || sizes.length === 0) return;
+
+      const vLabel = variety.name + (variety.shortForm ? ` (${variety.shortForm})` : "");
+
+      const tableWrap = document.createElement("div");
+      tableWrap.className = "order-table-wrap";
+
+      const table = document.createElement("table");
+      table.className = "order-table";
+
+      // Header row: Variety | Color | Size1 | Size2 | ... | Total
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      headRow.innerHTML = `<th class="th-variety">${vLabel}</th><th class="th-color">Color</th>`;
+      sizes.forEach(s => {
+        const th = document.createElement("th");
+        th.className = "th-size";
+        th.textContent = s;
+        headRow.appendChild(th);
+      });
+      const thTotal = document.createElement("th");
+      thTotal.className = "th-total";
+      thTotal.textContent = "Total";
+      headRow.appendChild(thTotal);
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      // Body rows: one row per color
+      const tbody = document.createElement("tbody");
+      itemColors.forEach((color, cIdx) => {
+        const tr = document.createElement("tr");
+
+        // Variety cell (only first row shows label, rest empty for visual grouping)
+        const tdVariety = document.createElement("td");
+        tdVariety.className = "td-variety";
+        if (cIdx === 0) tdVariety.textContent = vLabel;
+        tr.appendChild(tdVariety);
+
+        // Color cell
+        const tdColor = document.createElement("td");
+        tdColor.className = "td-color";
+        tdColor.textContent = color || "—";
+        tr.appendChild(tdColor);
+
+        // Size quantity cells
+        sizes.forEach(size => {
+          const td = document.createElement("td");
+          td.className = "td-qty";
+
+          const inp = document.createElement("input");
+          inp.type = "number";
+          inp.min = "0";
+          inp.step = "1";
+          inp.value = "";
+          inp.inputMode = "numeric";
+          inp.pattern = "[0-9]*";
+          inp.className = "qty-input";
+          inp.id = `oqty_${iIdx}_${vid}_${cIdx}_${size}`;
+          inp.dataset.item = item.name;
+          inp.dataset.variety = variety.name;
+          inp.dataset.color = color;
+          inp.dataset.size = size;
+
+          inp.addEventListener("input", () => {
+            let v = parseInt(inp.value, 10);
+            if (isNaN(v) || v < 0) { inp.value = ""; }
+            inp.classList.toggle("has-value", v > 0);
+            updateOrderRowTotal(tr, sizes, iIdx, vid, cIdx);
+            updateOrderItemBadge(iIdx);
+            updateOrderSummaryBar();
+          });
+
+          inp.addEventListener("focus", () => inp.select());
+
+          td.appendChild(inp);
+          tr.appendChild(td);
+        });
+
+        // Row total cell
+        const tdTotal = document.createElement("td");
+        tdTotal.className = "td-row-total";
+        tdTotal.id = `orowTotal_${iIdx}_${vid}_${cIdx}`;
+        tdTotal.textContent = "0";
+        tr.appendChild(tdTotal);
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      tableWrap.appendChild(table);
+      section.appendChild(tableWrap);
+    });
+
+    // Comment field per item
+    const commentRow = document.createElement("div");
+    commentRow.className = "order-item-comment";
+    commentRow.innerHTML = `<label>Comment:</label><input type="text" id="ocomment_${iIdx}" placeholder="Optional notes for ${item.name}…" />`;
+    section.appendChild(commentRow);
+
+    container.appendChild(section);
+  });
+}
+
+// ─── ORDER GRID HELPERS ─────────────────────────────────────
+
+function updateOrderRowTotal(tr, sizes, iIdx, vid, cIdx) {
+  let total = 0;
+  sizes.forEach(size => {
+    const inp = document.getElementById(`oqty_${iIdx}_${vid}_${cIdx}_${size}`);
+    if (inp) total += parseInt(inp.value, 10) || 0;
+  });
+  const cell = document.getElementById(`orowTotal_${iIdx}_${vid}_${cIdx}`);
+  if (cell) {
+    cell.textContent = total;
+    cell.classList.toggle("has-value", total > 0);
+  }
+}
+
+function updateOrderItemBadge(iIdx) {
+  const item = itemsCache[iIdx];
+  if (!item) return;
+  const itemColors = (item.colors && item.colors.length > 0) ? item.colors : [""];
+  const itemVarietyIds = item.sizes ? Object.keys(item.sizes) : [];
+  let total = 0;
+
+  itemVarietyIds.forEach(vid => {
+    const sizes = item.sizes[vid] || [];
+    itemColors.forEach((_, cIdx) => {
+      sizes.forEach(size => {
+        const inp = document.getElementById(`oqty_${iIdx}_${vid}_${cIdx}_${size}`);
         if (inp) total += parseInt(inp.value, 10) || 0;
       });
     });
-    if (total > 0) parts.push(`${item.item}: ${total}`);
+  });
+
+  const badge = document.getElementById(`orderItemBadge_${iIdx}`);
+  if (badge) {
+    badge.textContent = total;
+    badge.classList.toggle("visible", total > 0);
+  }
+}
+
+function updateOrderSummaryBar() {
+  const bar = document.getElementById("summaryBar");
+  const parts = [];
+
+  itemsCache.forEach((item, iIdx) => {
+    const itemColors = (item.colors && item.colors.length > 0) ? item.colors : [""];
+    const itemVarietyIds = item.sizes ? Object.keys(item.sizes) : [];
+    let total = 0;
+
+    itemVarietyIds.forEach(vid => {
+      const sizes = item.sizes[vid] || [];
+      itemColors.forEach((_, cIdx) => {
+        sizes.forEach(size => {
+          const inp = document.getElementById(`oqty_${iIdx}_${vid}_${cIdx}_${size}`);
+          if (inp) total += parseInt(inp.value, 10) || 0;
+        });
+      });
+    });
+
+    if (total > 0) parts.push(`${item.name}: ${total}`);
   });
 
   bar.textContent = parts.length ? "Total ─ " + parts.join("  |  ") : "";
@@ -274,40 +291,41 @@ function updateSummaryBar() {
 
 // ─── COLLECT ORDER DATA ─────────────────────────────────────
 
-/**
- * Walks the catalog and collects every size with qty > 0
- * into a flat normalized array of row objects.
- */
 function collectOrderData() {
   const customer = document.getElementById("customerName").value.trim();
   const date     = document.getElementById("orderDate").value;
   const market   = document.getElementById("marketArea").value.trim();
   const rows = [];
 
-  catalog.forEach((item, iIdx) => {
-    item.varieties.forEach((variety, vIdx) => {
-      const uid   = `${iIdx}_${vIdx}`;
-      const color = document.getElementById(`color_${uid}`).value;
-      const comment = document.getElementById(`comment_${uid}`).value.trim();
+  itemsCache.forEach((item, iIdx) => {
+    const itemColors = (item.colors && item.colors.length > 0) ? item.colors : [""];
+    const itemVarietyIds = item.sizes ? Object.keys(item.sizes) : [];
+    const comment = (document.getElementById(`ocomment_${iIdx}`) || {}).value || "";
 
-      variety.sizes.forEach(size => {
-        const qty = parseInt(
-          document.getElementById(`qty_${uid}_${size}`).value, 10
-        ) || 0;
+    itemVarietyIds.forEach(vid => {
+      const variety = varietiesCache.find(v => v.id === vid);
+      if (!variety) return;
+      const sizes = item.sizes[vid] || [];
 
-        if (qty > 0) {
-          rows.push({
-            customer,
-            date,
-            market,
-            item:    item.item,
-            variety: variety.name,
-            color,
-            size,
-            quantity: qty,
-            comment
-          });
-        }
+      itemColors.forEach((color, cIdx) => {
+        sizes.forEach(size => {
+          const inp = document.getElementById(`oqty_${iIdx}_${vid}_${cIdx}_${size}`);
+          const qty = inp ? parseInt(inp.value, 10) || 0 : 0;
+
+          if (qty > 0) {
+            rows.push({
+              customer,
+              date,
+              market,
+              item:     item.name,
+              variety:  variety.name,
+              color:    color,
+              size,
+              quantity: qty,
+              comment:  comment.trim()
+            });
+          }
+        });
       });
     });
   });
@@ -315,11 +333,8 @@ function collectOrderData() {
   return rows;
 }
 
-// ─── VALIDATE ORDER ─────────────────────────────────────────
+// ─── VALIDATE & SUBMIT ORDER ────────────────────────────────
 
-/**
- * Returns an error message string or null if valid.
- */
 function validateOrder(rows) {
   const customer = document.getElementById("customerName").value.trim();
   if (!customer) return "Customer name is required.";
@@ -327,12 +342,6 @@ function validateOrder(rows) {
   return null;
 }
 
-// ─── SUBMIT ORDER ───────────────────────────────────────────
-
-/**
- * Entry point from Save button.
- * Validates, shows confirmation modal, then submits.
- */
 function submitOrder() {
   if (isSubmitting) return;
 
@@ -344,7 +353,6 @@ function submitOrder() {
     return;
   }
 
-  // Build summary for confirmation modal
   const totalQty = rows.reduce((s, r) => s + r.quantity, 0);
   const items = [...new Set(rows.map(r => r.item))];
   document.getElementById("modalSummary").innerHTML =
@@ -352,24 +360,18 @@ function submitOrder() {
     `<strong>${items.join(", ")}</strong> for customer ` +
     `<strong>${rows[0].customer}</strong>?`;
 
-  // Show modal
   document.getElementById("modalOverlay").classList.remove("hidden");
 }
 
-/** User confirmed submission from modal */
 function confirmSubmit() {
   closeModal();
   doSubmit();
 }
 
-/** Close confirmation modal */
 function closeModal() {
   document.getElementById("modalOverlay").classList.add("hidden");
 }
 
-/**
- * Actual POST request to backend.
- */
 async function doSubmit() {
   const rows = collectOrderData();
   const btn     = document.getElementById("btnSave");
@@ -382,7 +384,7 @@ async function doSubmit() {
   spinner.classList.remove("hidden");
 
   try {
-    const resp = await fetch(API_URL, {
+    await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({ action: "submitOrder", api_key: API_KEY, orders: rows }),
@@ -390,12 +392,10 @@ async function doSubmit() {
     });
 
     showToast("Order saved successfully!", "success");
-    clearDraft();
-    resetForm();
+    resetOrderForm();
   } catch (err) {
     console.error("Submission error:", err);
-    showToast("Network error. Draft saved locally.", "error");
-    saveDraft(); // persist so data isn't lost
+    showToast("Network error. Please try again.", "error");
   } finally {
     isSubmitting = false;
     btn.disabled = false;
@@ -404,118 +404,36 @@ async function doSubmit() {
   }
 }
 
-// ─── RESET FORM ─────────────────────────────────────────────
+// ─── RESET ORDER FORM ───────────────────────────────────────
 
-/**
- * Clears all quantity fields, color selects, and comments.
- * Preserves customer name & date for repeated entries.
- */
-function resetForm() {
-  catalog.forEach((item, iIdx) => {
-    item.varieties.forEach((variety, vIdx) => {
-      const uid = `${iIdx}_${vIdx}`;
-
-      // Reset quantities
-      variety.sizes.forEach(size => {
-        const inp = document.getElementById(`qty_${uid}_${size}`);
-        if (inp) {
-          inp.value = 0;
-          inp.classList.remove("has-value");
-        }
-      });
-
-      // Reset color & comment
-      const sel = document.getElementById(`color_${uid}`);
-      if (sel) sel.value = "";
-
-      const ta = document.getElementById(`comment_${uid}`);
-      if (ta) ta.value = "";
-
-      // Reset badges
-      updateBadges(iIdx, vIdx);
-    });
+function resetOrderForm() {
+  // Clear all quantity inputs
+  document.querySelectorAll(".qty-input").forEach(inp => {
+    inp.value = "";
+    inp.classList.remove("has-value");
   });
 
-  updateSummaryBar();
-}
+  // Clear row totals
+  document.querySelectorAll(".td-row-total").forEach(el => {
+    el.textContent = "0";
+    el.classList.remove("has-value");
+  });
 
-// ─── LOCALSTORAGE DRAFT ─────────────────────────────────────
+  // Clear item badges
+  itemsCache.forEach((_, iIdx) => {
+    const badge = document.getElementById(`orderItemBadge_${iIdx}`);
+    if (badge) { badge.textContent = "0"; badge.classList.remove("visible"); }
+  });
 
-/** Save current form state to localStorage */
-function saveDraft() {
-  try {
-    const draft = {
-      customer: document.getElementById("customerName").value,
-      date:     document.getElementById("orderDate").value,
-      market:   document.getElementById("marketArea").value,
-      fields:   {}
-    };
+  // Clear comments
+  itemsCache.forEach((_, iIdx) => {
+    const c = document.getElementById(`ocomment_${iIdx}`);
+    if (c) c.value = "";
+  });
 
-    catalog.forEach((item, iIdx) => {
-      item.varieties.forEach((variety, vIdx) => {
-        const uid = `${iIdx}_${vIdx}`;
-        draft.fields[`color_${uid}`]   = document.getElementById(`color_${uid}`).value;
-        draft.fields[`comment_${uid}`] = document.getElementById(`comment_${uid}`).value;
-
-        variety.sizes.forEach(size => {
-          const inp = document.getElementById(`qty_${uid}_${size}`);
-          if (inp) draft.fields[inp.id] = inp.value;
-        });
-      });
-    });
-
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  } catch (e) {
-    // Storage full or unavailable — silently ignore
-  }
-}
-
-/** Restore form state from localStorage if a draft exists */
-function restoreDraft() {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if (!raw) return;
-
-    const draft = JSON.parse(raw);
-
-    if (draft.customer) document.getElementById("customerName").value = draft.customer;
-    if (draft.date)     document.getElementById("orderDate").value    = draft.date;
-    if (draft.market)   document.getElementById("marketArea").value   = draft.market;
-
-    if (draft.fields) {
-      Object.entries(draft.fields).forEach(([id, val]) => {
-        const elem = document.getElementById(id);
-        if (elem) {
-          elem.value = val;
-          // Re-apply visual indicator for qty fields
-          if (id.startsWith("qty_") && parseInt(val, 10) > 0) {
-            elem.classList.add("has-value");
-          }
-        }
-      });
-    }
-
-    // Refresh all badges
-    catalog.forEach((item, iIdx) => {
-      item.varieties.forEach((_, vIdx) => updateBadges(iIdx, vIdx));
-    });
-    updateSummaryBar();
-
-    showToast("Draft restored from local storage.", "info");
-  } catch (e) {
-    // Corrupt draft — clear it
-    localStorage.removeItem(DRAFT_KEY);
-  }
-}
-
-/** Remove saved draft */
-function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY);
-}
-
-/** Auto-save draft periodically */
-function startAutosave() {
-  setInterval(saveDraft, AUTOSAVE_INTERVAL);
+  // Clear summary bar
+  const bar = document.getElementById("summaryBar");
+  if (bar) bar.textContent = "";
 }
 
 // ─── TOAST NOTIFICATIONS ────────────────────────────────────
@@ -949,8 +867,7 @@ function updateItemImagePreviews() {
 
 // ─── ITEM COLOR HELPERS ─────────────────────────────────────
 
-/** Master color list loaded from the Colors sheet. */
-let colorMasterList = [];
+/** Master color list loaded from the Colors sheet (declared in STATE section). */
 
 /** Current selected colors for the item being edited. */
 window._itemColors = [];
