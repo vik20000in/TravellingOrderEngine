@@ -233,6 +233,14 @@ main {
 
 .order-item-badge.visible { display: inline-block; }
 
+/* --- Variety block (border per variety) --- */
+.order-variety-block {
+  border: 2px solid #b0b8c8;
+  border-radius: 8px;
+  margin: 0.6rem 0.5rem;
+  overflow: hidden;
+}
+
 /* --- Order table wrapper (horizontal scroll) --- */
 .order-table-wrap {
   overflow-x: auto;

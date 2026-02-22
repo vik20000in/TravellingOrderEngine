@@ -200,7 +200,11 @@ function renderOrderGrid() {
       tbody.appendChild(tr);
       table.appendChild(tbody);
       tableWrap.appendChild(table);
-      section.appendChild(tableWrap);
+
+      // Variety block wrapper (table + color/comment)
+      const varietyBlock = document.createElement("div");
+      varietyBlock.className = "order-variety-block";
+      varietyBlock.appendChild(tableWrap);
 
       // Color & Comment row below the table (per variety)
       const notesRow = document.createElement("div");
@@ -215,7 +219,8 @@ function renderOrderGrid() {
           <input type="text" id="ocomment_${iIdx}_${vid}" placeholder="Notes for ${vLabel}…" />
         </div>
       `;
-      section.appendChild(notesRow);
+      varietyBlock.appendChild(notesRow);
+      section.appendChild(varietyBlock);
     });
 
     container.appendChild(section);
