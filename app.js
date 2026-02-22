@@ -1298,10 +1298,10 @@ function openCustomerForm(customer = null) {
   const title = document.getElementById("customerFormTitle");
 
   // Reset form
-  document.getElementById("customerId").value = "";
-  document.getElementById("customerName").value = "";
-  document.getElementById("customerPhone").value = "";
-  document.getElementById("customerAddress").value = "";
+  document.getElementById("custMasterId").value = "";
+  document.getElementById("custMasterName").value = "";
+  document.getElementById("custMasterPhone").value = "";
+  document.getElementById("custMasterAddress").value = "";
   document.getElementById("custImage1").value = "";
   document.getElementById("custImage2").value = "";
   document.getElementById("custImagePreviews").innerHTML = "";
@@ -1318,10 +1318,10 @@ function openCustomerForm(customer = null) {
 
   if (customer) {
     title.textContent = "Edit Customer";
-    document.getElementById("customerId").value = customer.id;
-    document.getElementById("customerName").value = customer.name || "";
-    document.getElementById("customerPhone").value = customer.phone || "";
-    document.getElementById("customerAddress").value = customer.address || "";
+    document.getElementById("custMasterId").value = customer.id;
+    document.getElementById("custMasterName").value = customer.name || "";
+    document.getElementById("custMasterPhone").value = customer.phone || "";
+    document.getElementById("custMasterAddress").value = customer.address || "";
     if (customer.images && customer.images[0]) document.getElementById("custImage1").value = customer.images[0];
     if (customer.images && customer.images[1]) document.getElementById("custImage2").value = customer.images[1];
     updateCustImagePreviews();
@@ -1330,7 +1330,7 @@ function openCustomerForm(customer = null) {
   }
 
   panel.classList.remove("hidden");
-  document.getElementById("customerName").focus();
+  document.getElementById("custMasterName").focus();
 }
 
 function closeCustomerForm() {
@@ -1381,8 +1381,8 @@ async function handleCustImageUpload(input, index) {
  * Save (add or update) a customer.
  */
 async function saveCustomer() {
-  const name = document.getElementById("customerName").value.trim();
-  const phone = document.getElementById("customerPhone").value.trim();
+  const name = document.getElementById("custMasterName").value.trim();
+  const phone = document.getElementById("custMasterPhone").value.trim();
 
   if (!name) { showToast("Customer name is required.", "error"); return; }
   if (!phone) { showToast("Phone number is required.", "error"); return; }
@@ -1393,10 +1393,10 @@ async function saveCustomer() {
   ].filter(u => u);
 
   const customerData = {
-    id:      document.getElementById("customerId").value || null,
+    id:      document.getElementById("custMasterId").value || null,
     name:    name,
     phone:   phone,
-    address: document.getElementById("customerAddress").value.trim(),
+    address: document.getElementById("custMasterAddress").value.trim(),
     images:  images
   };
 
