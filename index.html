@@ -9,35 +9,114 @@
 </head>
 <body>
 
-  <!-- ===== STICKY HEADER ===== -->
-  <header id="header">
-    <h1>TravellingOrder Engine</h1>
-    <div class="header-fields">
-      <div class="field">
-        <label for="customerName">Customer Name <span class="req">*</span></label>
-        <input type="text" id="customerName" placeholder="Enter customer name" autocomplete="off" />
+  <!-- ===== TOP NAV BAR ===== -->
+  <nav id="navBar">
+    <div class="nav-brand">TravellingOrder Engine</div>
+    <div class="nav-links">
+      <button class="nav-btn active" data-page="orders" onclick="switchPage('orders')">Orders</button>
+      <button class="nav-btn" data-page="master" onclick="switchPage('master')">Master Data</button>
+    </div>
+  </nav>
+
+  <!-- ===== PAGE: ORDERS ===== -->
+  <div id="page-orders" class="page active">
+
+    <!-- ===== STICKY HEADER ===== -->
+    <header id="header">
+      <div class="header-fields">
+        <div class="field">
+          <label for="customerName">Customer Name <span class="req">*</span></label>
+          <input type="text" id="customerName" placeholder="Enter customer name" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="orderDate">Order Date</label>
+          <input type="date" id="orderDate" />
+        </div>
+        <div class="field">
+          <label for="marketArea">Market / Area</label>
+          <input type="text" id="marketArea" placeholder="Optional" autocomplete="off" />
+        </div>
+        <div class="field field-btn">
+          <button id="btnSave" onclick="submitOrder()">
+            <span id="btnText">Save Order</span>
+            <span id="btnSpinner" class="spinner hidden"></span>
+          </button>
+        </div>
       </div>
-      <div class="field">
-        <label for="orderDate">Order Date</label>
-        <input type="date" id="orderDate" />
+      <!-- Summary bar -->
+      <div id="summaryBar" class="summary-bar"></div>
+    </header>
+
+    <!-- ===== ORDER GRID ===== -->
+    <main id="catalogContainer"></main>
+
+  </div>
+
+  <!-- ===== PAGE: MASTER DATA ===== -->
+  <div id="page-master" class="page">
+
+    <div class="master-container">
+      <!-- Sub-tabs for master data sections -->
+      <div class="master-tabs">
+        <button class="master-tab active" data-tab="variety" onclick="switchMasterTab('variety')">Varieties</button>
       </div>
-      <div class="field">
-        <label for="marketArea">Market / Area</label>
-        <input type="text" id="marketArea" placeholder="Optional" autocomplete="off" />
-      </div>
-      <div class="field field-btn">
-        <button id="btnSave" onclick="submitOrder()">
-          <span id="btnText">Save Order</span>
-          <span id="btnSpinner" class="spinner hidden"></span>
-        </button>
+
+      <!-- Variety Tab Content -->
+      <div id="masterTab-variety" class="master-tab-content active">
+
+        <div class="master-header-row">
+          <h2>Manage Varieties</h2>
+          <button class="btn-add" onclick="openVarietyForm()">+ Add Variety</button>
+        </div>
+
+        <!-- Variety List -->
+        <div id="varietyList" class="variety-list">
+          <div class="loading-msg">Loading varieties…</div>
+        </div>
+
+        <!-- Variety Form (hidden by default) -->
+        <div id="varietyFormPanel" class="variety-form-panel hidden">
+          <h3 id="varietyFormTitle">Add New Variety</h3>
+          <input type="hidden" id="varietyId" />
+
+          <div class="form-group">
+            <label for="varietyName">Variety Name <span class="req">*</span></label>
+            <input type="text" id="varietyName" placeholder="e.g. Ganesh Lakshmi" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label for="varietyShortForm">Short Form</label>
+            <input type="text" id="varietyShortForm" placeholder="e.g. GL" autocomplete="off" maxlength="10" />
+          </div>
+
+          <div class="form-group">
+            <label for="varietyImageURL">Image URL</label>
+            <input type="url" id="varietyImageURL" placeholder="https://example.com/image.jpg" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label for="varietySizes">Sizes <span class="hint">(comma-separated)</span></label>
+            <input type="text" id="varietySizes" placeholder="e.g. 6 Inch, 9 Inch, 12 Inch" autocomplete="off" />
+          </div>
+
+          <!-- Image preview -->
+          <div id="varietyImagePreview" class="image-preview hidden">
+            <img id="varietyPreviewImg" src="" alt="Preview" />
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-cancel" onclick="closeVarietyForm()">Cancel</button>
+            <button class="btn-confirm" onclick="saveVariety()">
+              <span id="varietyBtnText">Save Variety</span>
+              <span id="varietySpinner" class="spinner hidden"></span>
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
-    <!-- Summary bar -->
-    <div id="summaryBar" class="summary-bar"></div>
-  </header>
 
-  <!-- ===== ORDER GRID ===== -->
-  <main id="catalogContainer"></main>
+  </div>
 
   <!-- ===== CONFIRMATION MODAL ===== -->
   <div id="modalOverlay" class="modal-overlay hidden">

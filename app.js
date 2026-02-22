@@ -57,6 +57,8 @@ const colorOptions = [
 
 // ─── STATE ──────────────────────────────────────────────────
 let isSubmitting = false; // prevents duplicate submissions
+let varietiesCache = [];  // cached varieties from backend
+let currentPage = "orders"; // current active page
 
 // ─── INITIALIZATION ─────────────────────────────────────────
 
@@ -535,4 +537,260 @@ function showToast(msg, type = "info") {
   toast.classList.remove("hidden");
 
   setTimeout(() => toast.classList.add("hidden"), 3500);
+}
+
+// ─── PAGE NAVIGATION ────────────────────────────────────────
+
+/**
+ * Switch between Orders and Master Data pages.
+ */
+function switchPage(page) {
+  currentPage = page;
+
+  // Toggle page visibility
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(`page-${page}`).classList.add("active");
+
+  // Toggle nav button active state
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector(`.nav-btn[data-page="${page}"]`).classList.add("active");
+
+  // Load master data when switching to that page
+  if (page === "master") {
+    loadVarieties();
+  }
+}
+
+/**
+ * Switch between master data sub-tabs.
+ */
+function switchMasterTab(tab) {
+  document.querySelectorAll(".master-tab").forEach(t => t.classList.remove("active"));
+  document.querySelector(`.master-tab[data-tab="${tab}"]`).classList.add("active");
+
+  document.querySelectorAll(".master-tab-content").forEach(c => c.classList.remove("active"));
+  document.getElementById(`masterTab-${tab}`).classList.add("active");
+}
+
+// ─── VARIETY MASTER DATA ────────────────────────────────────
+
+/**
+ * Fetch all varieties from the backend.
+ */
+async function loadVarieties() {
+  const listEl = document.getElementById("varietyList");
+  listEl.innerHTML = '<div class="loading-msg">Loading varieties…</div>';
+
+  try {
+    const resp = await fetch(`${API_URL}?action=getVarieties`, {
+      method: "GET",
+      mode: "cors"
+    });
+    const data = await resp.json();
+
+    if (data.status === "success" && data.varieties) {
+      varietiesCache = data.varieties;
+      renderVarietyList(data.varieties);
+    } else {
+      listEl.innerHTML = '<div class="loading-msg">Failed to load varieties.</div>';
+    }
+  } catch (err) {
+    console.error("Load varieties error:", err);
+    // Fallback: show locally cached or empty
+    if (varietiesCache.length > 0) {
+      renderVarietyList(varietiesCache);
+      showToast("Showing cached data. Network error.", "error");
+    } else {
+      listEl.innerHTML = '<div class="loading-msg">Network error. Please check your connection.</div>';
+    }
+  }
+}
+
+/**
+ * Render the variety list cards.
+ */
+function renderVarietyList(varieties) {
+  const listEl = document.getElementById("varietyList");
+
+  if (!varieties || varieties.length === 0) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <p>No varieties found. Click "+ Add Variety" to get started.</p>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = varieties.map(v => {
+    const sizeTags = (v.sizes || [])
+      .map(s => `<span>${s}</span>`)
+      .join("");
+
+    const imgHtml = v.imageURL
+      ? `<img src="${v.imageURL}" alt="${v.name}" />`
+      : `<div class="placeholder-icon">🖼</div>`;
+
+    return `
+      <div class="variety-card" data-id="${v.id}">
+        <div class="variety-card-img">${imgHtml}</div>
+        <div class="variety-card-body">
+          <div class="variety-card-name">${v.name}</div>
+          ${v.shortForm ? `<div class="variety-card-short">${v.shortForm}</div>` : ""}
+          <div class="variety-card-sizes">${sizeTags || '<span style="color:#aaa">No sizes defined</span>'}</div>
+        </div>
+        <div class="variety-card-actions">
+          <button class="btn-edit" onclick="editVariety('${v.id}')">Edit</button>
+          <button class="btn-delete" onclick="confirmDeleteVariety('${v.id}', '${v.name.replace(/'/g, "\\'")}')">Delete</button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+/**
+ * Open the variety form for adding a new entry.
+ */
+function openVarietyForm(variety = null) {
+  const panel = document.getElementById("varietyFormPanel");
+  const title = document.getElementById("varietyFormTitle");
+
+  // Reset form
+  document.getElementById("varietyId").value = "";
+  document.getElementById("varietyName").value = "";
+  document.getElementById("varietyShortForm").value = "";
+  document.getElementById("varietyImageURL").value = "";
+  document.getElementById("varietySizes").value = "";
+  document.getElementById("varietyImagePreview").classList.add("hidden");
+
+  if (variety) {
+    title.textContent = "Edit Variety";
+    document.getElementById("varietyId").value = variety.id;
+    document.getElementById("varietyName").value = variety.name || "";
+    document.getElementById("varietyShortForm").value = variety.shortForm || "";
+    document.getElementById("varietyImageURL").value = variety.imageURL || "";
+    document.getElementById("varietySizes").value = (variety.sizes || []).join(", ");
+
+    if (variety.imageURL) {
+      document.getElementById("varietyPreviewImg").src = variety.imageURL;
+      document.getElementById("varietyImagePreview").classList.remove("hidden");
+    }
+  } else {
+    title.textContent = "Add New Variety";
+  }
+
+  panel.classList.remove("hidden");
+  document.getElementById("varietyName").focus();
+
+  // Set up image preview on URL change
+  const imgInput = document.getElementById("varietyImageURL");
+  imgInput.oninput = () => {
+    const url = imgInput.value.trim();
+    const preview = document.getElementById("varietyImagePreview");
+    if (url) {
+      document.getElementById("varietyPreviewImg").src = url;
+      preview.classList.remove("hidden");
+    } else {
+      preview.classList.add("hidden");
+    }
+  };
+}
+
+/**
+ * Close the variety form.
+ */
+function closeVarietyForm() {
+  document.getElementById("varietyFormPanel").classList.add("hidden");
+}
+
+/**
+ * Load a variety into the edit form.
+ */
+function editVariety(id) {
+  const variety = varietiesCache.find(v => v.id == id);
+  if (variety) openVarietyForm(variety);
+}
+
+/**
+ * Save (add or update) a variety via backend POST.
+ */
+async function saveVariety() {
+  const name = document.getElementById("varietyName").value.trim();
+  if (!name) {
+    showToast("Variety name is required.", "error");
+    return;
+  }
+
+  const varietyData = {
+    id:        document.getElementById("varietyId").value || null,
+    name:      name,
+    shortForm: document.getElementById("varietyShortForm").value.trim(),
+    imageURL:  document.getElementById("varietyImageURL").value.trim(),
+    sizes:     document.getElementById("varietySizes").value
+                 .split(",")
+                 .map(s => s.trim())
+                 .filter(s => s.length > 0)
+  };
+
+  const btnText = document.getElementById("varietyBtnText");
+  const spinner = document.getElementById("varietySpinner");
+
+  btnText.textContent = "Saving…";
+  spinner.classList.remove("hidden");
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "saveVariety",
+        api_key: API_KEY,
+        variety: varietyData
+      }),
+      mode: "no-cors"
+    });
+
+    showToast(varietyData.id ? "Variety updated!" : "Variety added!", "success");
+    closeVarietyForm();
+
+    // Reload list after a brief delay (no-cors can't read response)
+    setTimeout(() => loadVarieties(), 1000);
+  } catch (err) {
+    console.error("Save variety error:", err);
+    showToast("Error saving variety. Try again.", "error");
+  } finally {
+    btnText.textContent = "Save Variety";
+    spinner.classList.add("hidden");
+  }
+}
+
+/**
+ * Show a confirmation before deleting a variety.
+ */
+function confirmDeleteVariety(id, name) {
+  if (confirm(`Delete variety "${name}"? This cannot be undone.`)) {
+    deleteVariety(id);
+  }
+}
+
+/**
+ * Delete a variety via backend POST.
+ */
+async function deleteVariety(id) {
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "deleteVariety",
+        api_key: API_KEY,
+        varietyId: id
+      }),
+      mode: "no-cors"
+    });
+
+    showToast("Variety deleted.", "success");
+    setTimeout(() => loadVarieties(), 1000);
+  } catch (err) {
+    console.error("Delete variety error:", err);
+    showToast("Error deleting variety. Try again.", "error");
+  }
 }
