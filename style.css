@@ -269,7 +269,6 @@ main {
   font-size: 0.8rem !important;
 }
 
-.th-color { min-width: 70px; }
 .th-size  { min-width: 52px; }
 .th-total { min-width: 50px; background: #e8ecf1; }
 
@@ -278,12 +277,6 @@ main {
   font-weight: 600;
   font-size: 0.78rem;
   color: #333;
-  background: #fafbfd;
-}
-
-.td-color {
-  font-size: 0.78rem;
-  color: #555;
   background: #fafbfd;
 }
 
@@ -328,33 +321,40 @@ main {
 
 .td-row-total.has-value { color: #0f3460; }
 
-/* --- Comment per item --- */
-.order-item-comment {
+/* --- Color & Comment per variety --- */
+.order-variety-notes {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem 0.75rem;
-  border-top: 1px solid #e8ecf1;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.4rem 1rem 0.6rem;
+  border-bottom: 1px solid #e8ecf1;
 }
 
-.order-item-comment label {
-  font-size: 0.78rem;
+.variety-note-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 200px;
+}
+
+.variety-note-field label {
+  font-size: 0.75rem;
   font-weight: 600;
   color: #555;
   white-space: nowrap;
 }
 
-.order-item-comment input {
+.variety-note-field input {
   flex: 1;
-  padding: 0.4rem 0.6rem;
+  padding: 0.3rem 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   outline: none;
   transition: border-color 0.2s;
 }
 
-.order-item-comment input:focus { border-color: #533483; }
+.variety-note-field input:focus { border-color: #533483; }
 
 /* --- Loading message --- */
 .loading-msg {

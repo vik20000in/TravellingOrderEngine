@@ -76,7 +76,8 @@ async function loadOrderMasterData() {
 /**
  * Builds the entire order grid from master data.
  * For each Item → a section with an Excel-like table.
- * Rows = Variety × Color combos, Columns = sizes for that variety.
+ * One row per Variety. Columns = sizes for that variety + row total.
+ * Below each variety row: color textbox + comment textbox.
  */
 function renderOrderGrid() {
   const container = document.getElementById("orderGridContainer");
@@ -101,9 +102,6 @@ function renderOrderGrid() {
     `;
     section.appendChild(header);
 
-    // Get item colors (default to all master colors if none set)
-    const itemColors = (item.colors && item.colors.length > 0) ? item.colors : [""];
-
     // Get which varieties this item supports (from its sizes mapping)
     const itemVarietyIds = item.sizes ? Object.keys(item.sizes) : [];
 
@@ -116,7 +114,7 @@ function renderOrderGrid() {
       return;
     }
 
-    // Build one table per variety
+    // Build one table per variety — each variety has exactly one data row
     itemVarietyIds.forEach(vid => {
       const variety = varietiesCache.find(v => v.id === vid);
       if (!variety) return;
@@ -132,10 +130,10 @@ function renderOrderGrid() {
       const table = document.createElement("table");
       table.className = "order-table";
 
-      // Header row: Variety | Color | Size1 | Size2 | ... | Total
+      // Header row: Variety | Size1 | Size2 | ... | Total
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
-      headRow.innerHTML = `<th class="th-variety">${vLabel}</th><th class="th-color">Color</th>`;
+      headRow.innerHTML = `<th class="th-variety">${vLabel}</th>`;
       sizes.forEach(s => {
         const th = document.createElement("th");
         th.className = "th-size";
@@ -149,77 +147,76 @@ function renderOrderGrid() {
       thead.appendChild(headRow);
       table.appendChild(thead);
 
-      // Body rows: one row per color
+      // Single body row for this variety
       const tbody = document.createElement("tbody");
-      itemColors.forEach((color, cIdx) => {
-        const tr = document.createElement("tr");
+      const tr = document.createElement("tr");
 
-        // Variety cell (only first row shows label, rest empty for visual grouping)
-        const tdVariety = document.createElement("td");
-        tdVariety.className = "td-variety";
-        if (cIdx === 0) tdVariety.textContent = vLabel;
-        tr.appendChild(tdVariety);
+      // Variety label cell
+      const tdVariety = document.createElement("td");
+      tdVariety.className = "td-variety";
+      tdVariety.textContent = vLabel;
+      tr.appendChild(tdVariety);
 
-        // Color cell
-        const tdColor = document.createElement("td");
-        tdColor.className = "td-color";
-        tdColor.textContent = color || "—";
-        tr.appendChild(tdColor);
+      // Size quantity cells
+      sizes.forEach(size => {
+        const td = document.createElement("td");
+        td.className = "td-qty";
 
-        // Size quantity cells
-        sizes.forEach(size => {
-          const td = document.createElement("td");
-          td.className = "td-qty";
+        const inp = document.createElement("input");
+        inp.type = "number";
+        inp.min = "0";
+        inp.step = "1";
+        inp.value = "";
+        inp.inputMode = "numeric";
+        inp.pattern = "[0-9]*";
+        inp.className = "qty-input";
+        inp.id = `oqty_${iIdx}_${vid}_${size}`;
+        inp.dataset.item = item.name;
+        inp.dataset.variety = variety.name;
+        inp.dataset.size = size;
 
-          const inp = document.createElement("input");
-          inp.type = "number";
-          inp.min = "0";
-          inp.step = "1";
-          inp.value = "";
-          inp.inputMode = "numeric";
-          inp.pattern = "[0-9]*";
-          inp.className = "qty-input";
-          inp.id = `oqty_${iIdx}_${vid}_${cIdx}_${size}`;
-          inp.dataset.item = item.name;
-          inp.dataset.variety = variety.name;
-          inp.dataset.color = color;
-          inp.dataset.size = size;
-
-          inp.addEventListener("input", () => {
-            let v = parseInt(inp.value, 10);
-            if (isNaN(v) || v < 0) { inp.value = ""; }
-            inp.classList.toggle("has-value", v > 0);
-            updateOrderRowTotal(tr, sizes, iIdx, vid, cIdx);
-            updateOrderItemBadge(iIdx);
-            updateOrderSummaryBar();
-          });
-
-          inp.addEventListener("focus", () => inp.select());
-
-          td.appendChild(inp);
-          tr.appendChild(td);
+        inp.addEventListener("input", () => {
+          let v = parseInt(inp.value, 10);
+          if (isNaN(v) || v < 0) { inp.value = ""; }
+          inp.classList.toggle("has-value", v > 0);
+          updateOrderRowTotal(sizes, iIdx, vid);
+          updateOrderItemBadge(iIdx);
+          updateOrderSummaryBar();
         });
 
-        // Row total cell
-        const tdTotal = document.createElement("td");
-        tdTotal.className = "td-row-total";
-        tdTotal.id = `orowTotal_${iIdx}_${vid}_${cIdx}`;
-        tdTotal.textContent = "0";
-        tr.appendChild(tdTotal);
+        inp.addEventListener("focus", () => inp.select());
 
-        tbody.appendChild(tr);
+        td.appendChild(inp);
+        tr.appendChild(td);
       });
 
+      // Row total cell
+      const tdTotal = document.createElement("td");
+      tdTotal.className = "td-row-total";
+      tdTotal.id = `orowTotal_${iIdx}_${vid}`;
+      tdTotal.textContent = "0";
+      tr.appendChild(tdTotal);
+
+      tbody.appendChild(tr);
       table.appendChild(tbody);
       tableWrap.appendChild(table);
       section.appendChild(tableWrap);
-    });
 
-    // Comment field per item
-    const commentRow = document.createElement("div");
-    commentRow.className = "order-item-comment";
-    commentRow.innerHTML = `<label>Comment:</label><input type="text" id="ocomment_${iIdx}" placeholder="Optional notes for ${item.name}…" />`;
-    section.appendChild(commentRow);
+      // Color & Comment row below the table (per variety)
+      const notesRow = document.createElement("div");
+      notesRow.className = "order-variety-notes";
+      notesRow.innerHTML = `
+        <div class="variety-note-field">
+          <label>Color:</label>
+          <input type="text" id="ocolor_${iIdx}_${vid}" placeholder="e.g. Red, Blue mix…" />
+        </div>
+        <div class="variety-note-field">
+          <label>Comment:</label>
+          <input type="text" id="ocomment_${iIdx}_${vid}" placeholder="Notes for ${vLabel}…" />
+        </div>
+      `;
+      section.appendChild(notesRow);
+    });
 
     container.appendChild(section);
   });
@@ -227,13 +224,13 @@ function renderOrderGrid() {
 
 // ─── ORDER GRID HELPERS ─────────────────────────────────────
 
-function updateOrderRowTotal(tr, sizes, iIdx, vid, cIdx) {
+function updateOrderRowTotal(sizes, iIdx, vid) {
   let total = 0;
   sizes.forEach(size => {
-    const inp = document.getElementById(`oqty_${iIdx}_${vid}_${cIdx}_${size}`);
+    const inp = document.getElementById(`oqty_${iIdx}_${vid}_${size}`);
     if (inp) total += parseInt(inp.value, 10) || 0;
   });
-  const cell = document.getElementById(`orowTotal_${iIdx}_${vid}_${cIdx}`);
+  const cell = document.getElementById(`orowTotal_${iIdx}_${vid}`);
   if (cell) {
     cell.textContent = total;
     cell.classList.toggle("has-value", total > 0);
@@ -243,17 +240,14 @@ function updateOrderRowTotal(tr, sizes, iIdx, vid, cIdx) {
 function updateOrderItemBadge(iIdx) {
   const item = itemsCache[iIdx];
   if (!item) return;
-  const itemColors = (item.colors && item.colors.length > 0) ? item.colors : [""];
   const itemVarietyIds = item.sizes ? Object.keys(item.sizes) : [];
   let total = 0;
 
   itemVarietyIds.forEach(vid => {
     const sizes = item.sizes[vid] || [];
-    itemColors.forEach((_, cIdx) => {
-      sizes.forEach(size => {
-        const inp = document.getElementById(`oqty_${iIdx}_${vid}_${cIdx}_${size}`);
-        if (inp) total += parseInt(inp.value, 10) || 0;
-      });
+    sizes.forEach(size => {
+      const inp = document.getElementById(`oqty_${iIdx}_${vid}_${size}`);
+      if (inp) total += parseInt(inp.value, 10) || 0;
     });
   });
 
@@ -269,17 +263,14 @@ function updateOrderSummaryBar() {
   const parts = [];
 
   itemsCache.forEach((item, iIdx) => {
-    const itemColors = (item.colors && item.colors.length > 0) ? item.colors : [""];
     const itemVarietyIds = item.sizes ? Object.keys(item.sizes) : [];
     let total = 0;
 
     itemVarietyIds.forEach(vid => {
       const sizes = item.sizes[vid] || [];
-      itemColors.forEach((_, cIdx) => {
-        sizes.forEach(size => {
-          const inp = document.getElementById(`oqty_${iIdx}_${vid}_${cIdx}_${size}`);
-          if (inp) total += parseInt(inp.value, 10) || 0;
-        });
+      sizes.forEach(size => {
+        const inp = document.getElementById(`oqty_${iIdx}_${vid}_${size}`);
+        if (inp) total += parseInt(inp.value, 10) || 0;
       });
     });
 
@@ -298,34 +289,32 @@ function collectOrderData() {
   const rows = [];
 
   itemsCache.forEach((item, iIdx) => {
-    const itemColors = (item.colors && item.colors.length > 0) ? item.colors : [""];
     const itemVarietyIds = item.sizes ? Object.keys(item.sizes) : [];
-    const comment = (document.getElementById(`ocomment_${iIdx}`) || {}).value || "";
 
     itemVarietyIds.forEach(vid => {
       const variety = varietiesCache.find(v => v.id === vid);
       if (!variety) return;
       const sizes = item.sizes[vid] || [];
+      const color   = (document.getElementById(`ocolor_${iIdx}_${vid}`) || {}).value || "";
+      const comment = (document.getElementById(`ocomment_${iIdx}_${vid}`) || {}).value || "";
 
-      itemColors.forEach((color, cIdx) => {
-        sizes.forEach(size => {
-          const inp = document.getElementById(`oqty_${iIdx}_${vid}_${cIdx}_${size}`);
-          const qty = inp ? parseInt(inp.value, 10) || 0 : 0;
+      sizes.forEach(size => {
+        const inp = document.getElementById(`oqty_${iIdx}_${vid}_${size}`);
+        const qty = inp ? parseInt(inp.value, 10) || 0 : 0;
 
-          if (qty > 0) {
-            rows.push({
-              customer,
-              date,
-              market,
-              item:     item.name,
-              variety:  variety.name,
-              color:    color,
-              size,
-              quantity: qty,
-              comment:  comment.trim()
-            });
-          }
-        });
+        if (qty > 0) {
+          rows.push({
+            customer,
+            date,
+            market,
+            item:     item.name,
+            variety:  variety.name,
+            color:    color.trim(),
+            size,
+            quantity: qty,
+            comment:  comment.trim()
+          });
+        }
       });
     });
   });
@@ -425,10 +414,9 @@ function resetOrderForm() {
     if (badge) { badge.textContent = "0"; badge.classList.remove("visible"); }
   });
 
-  // Clear comments
-  itemsCache.forEach((_, iIdx) => {
-    const c = document.getElementById(`ocomment_${iIdx}`);
-    if (c) c.value = "";
+  // Clear color & comment fields per variety
+  document.querySelectorAll(".order-variety-notes input").forEach(inp => {
+    inp.value = "";
   });
 
   // Clear summary bar
