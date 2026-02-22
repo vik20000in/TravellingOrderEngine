@@ -8,7 +8,7 @@
 // ─── CONFIGURATION ──────────────────────────────────────────
 
 /** Must match the API_KEY constant in your frontend app.js */
-const SECRET_KEY = "PASTE_YOUR_SECRET_KEY";
+const SECRET_KEY = "mySecretKey2026xyz";
 
 /** Name of the Google Sheet tab that receives orders */
 const SHEET_NAME = "Orders";
