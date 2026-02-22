@@ -16,6 +16,9 @@ const SHEET_NAME = "Orders";
 /** Name of the Google Sheet tab for Variety master data */
 const VARIETY_SHEET = "Varieties";
 
+/** Name of the Google Sheet tab for Item master data */
+const ITEM_SHEET = "Items";
+
 // ─── doPost – MAIN ENTRY POINT ──────────────────────────────
 
 /**
@@ -49,6 +52,8 @@ function doPost(e) {
 
     if (action === "saveVariety")   return saveVariety(payload);
     if (action === "deleteVariety") return deleteVariety(payload);
+    if (action === "saveItem")      return saveItem(payload);
+    if (action === "deleteItem")    return deleteItem(payload);
 
     // Default: submit orders
     return submitOrders(payload);
@@ -113,6 +118,7 @@ function doGet(e) {
   var action = (e.parameter && e.parameter.action) ? e.parameter.action : "";
 
   if (action === "getVarieties") return getVarieties();
+  if (action === "getItems")     return getItems();
 
   return jsonResponse(200, {
     status: "ok",
@@ -303,4 +309,112 @@ function setupVarieties() {
 
   sheet.getRange(2, 1, defaults.length, 5).setValues(defaults);
   SpreadsheetApp.getUi().alert("Seeded " + defaults.length + " default varieties.");
+}
+
+// ─── ITEM MASTER DATA ────────────────────────────────────────
+
+/**
+ * Ensures the Items sheet exists with proper headers.
+ * Columns: ID, Name, ShortForm, Image1, Image2, Image3, SizesJSON, Comment
+ * SizesJSON stores a JSON string mapping variety IDs to size arrays:
+ * e.g. {"V1":["6 Inch","9 Inch"],"V2":["3 Inch","5 Inch"]}
+ */
+function getOrCreateItemSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(ITEM_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(ITEM_SHEET);
+    sheet.appendRow(["ID", "Name", "ShortForm", "Image1", "Image2", "Image3", "SizesJSON", "Comment"]);
+    sheet.getRange(1, 1, 1, 8).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * GET handler: Returns all items as JSON array.
+ */
+function getItems() {
+  var sheet = getOrCreateItemSheet();
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow <= 1) {
+    return jsonResponse(200, { status: "success", items: [] });
+  }
+
+  var data = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+  var items = data.map(function(row) {
+    var sizesObj = {};
+    try {
+      if (row[6]) sizesObj = JSON.parse(row[6]);
+    } catch(e) {}
+
+    return {
+      id:        row[0],
+      name:      row[1],
+      shortForm: row[2],
+      images:    [row[3] || "", row[4] || "", row[5] || ""].filter(function(u){ return u !== ""; }),
+      sizes:     sizesObj,
+      comment:   row[7] || ""
+    };
+  });
+
+  return jsonResponse(200, { status: "success", items: items });
+}
+
+/**
+ * POST handler: Save (add or update) an item.
+ * Expects payload: { action: "saveItem", item: { id, name, shortForm, images:[], sizes:{}, comment } }
+ */
+function saveItem(payload) {
+  var item = payload.item;
+  if (!item || !item.name) {
+    return jsonResponse(400, { error: "Item name is required." });
+  }
+
+  var sheet = getOrCreateItemSheet();
+  var imgs = item.images || [];
+  var sizesStr = JSON.stringify(item.sizes || {});
+
+  if (item.id) {
+    var lastRow = sheet.getLastRow();
+    for (var r = 2; r <= lastRow; r++) {
+      if (sheet.getRange(r, 1).getValue() == item.id) {
+        sheet.getRange(r, 2).setValue(item.name);
+        sheet.getRange(r, 3).setValue(item.shortForm || "");
+        sheet.getRange(r, 4).setValue(imgs[0] || "");
+        sheet.getRange(r, 5).setValue(imgs[1] || "");
+        sheet.getRange(r, 6).setValue(imgs[2] || "");
+        sheet.getRange(r, 7).setValue(sizesStr);
+        sheet.getRange(r, 8).setValue(item.comment || "");
+        return jsonResponse(200, { status: "success", message: "Item updated.", id: item.id });
+      }
+    }
+  }
+
+  var newId = "I" + new Date().getTime();
+  sheet.appendRow([newId, item.name, item.shortForm || "", imgs[0] || "", imgs[1] || "", imgs[2] || "", sizesStr, item.comment || ""]);
+  return jsonResponse(200, { status: "success", message: "Item added.", id: newId });
+}
+
+/**
+ * POST handler: Delete an item by ID.
+ */
+function deleteItem(payload) {
+  var id = payload.itemId;
+  if (!id) {
+    return jsonResponse(400, { error: "Item ID is required." });
+  }
+
+  var sheet = getOrCreateItemSheet();
+  var lastRow = sheet.getLastRow();
+
+  for (var r = 2; r <= lastRow; r++) {
+    if (sheet.getRange(r, 1).getValue() == id) {
+      sheet.deleteRow(r);
+      return jsonResponse(200, { status: "success", message: "Item deleted." });
+    }
+  }
+
+  return jsonResponse(404, { error: "Item not found." });
 }

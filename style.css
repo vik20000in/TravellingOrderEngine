@@ -777,3 +777,143 @@ main {
     min-height: 100px;
   }
 }
+
+/* ---------- ITEM-SPECIFIC STYLES ---------- */
+
+/* Multiple image inputs spacing */
+.item-img-input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fafbfd;
+  color: #1a1a2e;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 0.4rem;
+}
+
+.item-img-input:focus {
+  border-color: #533483;
+  background: #fff;
+}
+
+/* Image previews row */
+.item-image-previews {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.item-image-previews .img-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  border: 2px solid #e8ecf1;
+  object-fit: cover;
+  background: #f0f2f5;
+}
+
+/* Sizes per variety section */
+.sizes-per-variety {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.variety-size-row {
+  background: #fafbfd;
+  border: 1px solid #e8ecf1;
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+}
+
+.variety-size-row .variety-size-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #533483;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 0.35rem;
+}
+
+.variety-size-row .variety-size-hint {
+  font-size: 0.75rem;
+  color: #999;
+  font-weight: 400;
+  text-transform: none;
+  margin-left: 0.3rem;
+}
+
+.variety-size-row input[type="text"] {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  background: #fff;
+  color: #1a1a2e;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.variety-size-row input[type="text"]:focus {
+  border-color: #533483;
+}
+
+/* Item card images strip */
+.item-card-images {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.item-card-images img {
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #e8ecf1;
+}
+
+/* Item card variety-sizes summary */
+.item-card-variety-sizes {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.2rem;
+}
+
+.item-card-variety-sizes .vs-label {
+  font-weight: 600;
+  color: #533483;
+  font-size: 0.75rem;
+}
+
+.item-card-comment {
+  font-size: 0.78rem;
+  color: #888;
+  font-style: italic;
+  margin-top: 0.2rem;
+}
+
+/* Textarea in form */
+.variety-form-panel textarea {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fafbfd;
+  color: #1a1a2e;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+  min-height: 52px;
+  font-family: inherit;
+}
+
+.variety-form-panel textarea:focus {
+  border-color: #533483;
+  background: #fff;
+}

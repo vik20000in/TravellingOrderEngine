@@ -59,6 +59,7 @@
       <!-- Sub-tabs for master data sections -->
       <div class="master-tabs">
         <button class="master-tab active" data-tab="variety" onclick="switchMasterTab('variety')">Varieties</button>
+        <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">Items</button>
       </div>
 
       <!-- Variety Tab Content -->
@@ -114,8 +115,68 @@
         </div>
 
       </div>
-    </div>
 
+      <!-- Items Tab Content -->
+      <div id="masterTab-items" class="master-tab-content">
+
+        <div class="master-header-row">
+          <h2>Manage Items</h2>
+          <button class="btn-add" onclick="openItemForm()">+ Add Item</button>
+        </div>
+
+        <!-- Item List -->
+        <div id="itemList" class="variety-list">
+          <div class="loading-msg">Loading items…</div>
+        </div>
+
+        <!-- Item Form (hidden by default) -->
+        <div id="itemFormPanel" class="variety-form-panel hidden">
+          <h3 id="itemFormTitle">Add New Item</h3>
+          <input type="hidden" id="itemId" />
+
+          <div class="form-group">
+            <label for="itemName">Item Name <span class="req">*</span></label>
+            <input type="text" id="itemName" placeholder="e.g. Kurti" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label for="itemShortForm">Short Form</label>
+            <input type="text" id="itemShortForm" placeholder="e.g. KRT" autocomplete="off" maxlength="10" />
+          </div>
+
+          <div class="form-group">
+            <label>Images <span class="hint">(up to 3 URLs)</span></label>
+            <input type="url" id="itemImage1" class="item-img-input" placeholder="Image URL 1" autocomplete="off" />
+            <input type="url" id="itemImage2" class="item-img-input" placeholder="Image URL 2 (optional)" autocomplete="off" />
+            <input type="url" id="itemImage3" class="item-img-input" placeholder="Image URL 3 (optional)" autocomplete="off" />
+            <div id="itemImagePreviews" class="item-image-previews"></div>
+          </div>
+
+          <!-- Sizes per variety -->
+          <div class="form-group">
+            <label>Sizes per Variety</label>
+            <div id="itemSizesPerVariety" class="sizes-per-variety">
+              <div class="loading-msg">Loading varieties…</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="itemComment">Comment</label>
+            <textarea id="itemComment" placeholder="Optional notes about this item…" rows="2"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-cancel" onclick="closeItemForm()">Cancel</button>
+            <button class="btn-confirm" onclick="saveItem()">
+              <span id="itemBtnText">Save Item</span>
+              <span id="itemSpinner" class="spinner hidden"></span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
   </div>
 
   <!-- ===== CONFIRMATION MODAL ===== -->

@@ -58,6 +58,7 @@ const colorOptions = [
 // ─── STATE ──────────────────────────────────────────────────
 let isSubmitting = false; // prevents duplicate submissions
 let varietiesCache = [];  // cached varieties from backend
+let itemsCache = [];      // cached items from backend
 let currentPage = "orders"; // current active page
 
 // ─── INITIALIZATION ─────────────────────────────────────────
@@ -558,6 +559,7 @@ function switchPage(page) {
   // Load master data when switching to that page
   if (page === "master") {
     loadVarieties();
+    loadItems();
   }
 }
 
@@ -570,6 +572,10 @@ function switchMasterTab(tab) {
 
   document.querySelectorAll(".master-tab-content").forEach(c => c.classList.remove("active"));
   document.getElementById(`masterTab-${tab}`).classList.add("active");
+
+  // Load data for the active tab
+  if (tab === "variety") loadVarieties();
+  if (tab === "items") loadItems();
 }
 
 // ─── VARIETY MASTER DATA ────────────────────────────────────
@@ -792,5 +798,283 @@ async function deleteVariety(id) {
   } catch (err) {
     console.error("Delete variety error:", err);
     showToast("Error deleting variety. Try again.", "error");
+  }
+}
+
+// ─── ITEM MASTER DATA ───────────────────────────────────────
+
+/**
+ * Fetch all items from the backend.
+ */
+async function loadItems() {
+  const listEl = document.getElementById("itemList");
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="loading-msg">Loading items…</div>';
+
+  try {
+    const resp = await fetch(`${API_URL}?action=getItems`, {
+      method: "GET",
+      mode: "cors"
+    });
+    const data = await resp.json();
+
+    if (data.status === "success" && data.items) {
+      itemsCache = data.items;
+      renderItemList(data.items);
+    } else {
+      listEl.innerHTML = '<div class="loading-msg">Failed to load items.</div>';
+    }
+  } catch (err) {
+    console.error("Load items error:", err);
+    if (itemsCache.length > 0) {
+      renderItemList(itemsCache);
+      showToast("Showing cached data. Network error.", "error");
+    } else {
+      listEl.innerHTML = '<div class="loading-msg">Network error. Please check your connection.</div>';
+    }
+  }
+}
+
+/**
+ * Render item list cards.
+ */
+function renderItemList(items) {
+  const listEl = document.getElementById("itemList");
+
+  if (!items || items.length === 0) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <p>No items found. Click "+ Add Item" to get started.</p>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = items.map(item => {
+    // Image thumbnails
+    const imgsHtml = (item.images && item.images.length > 0)
+      ? `<div class="item-card-images">${item.images.map(u => `<img src="${u}" alt="" />`).join("")}</div>`
+      : `<div class="placeholder-icon">🖼</div>`;
+
+    // Sizes per variety summary
+    let sizeSummary = "";
+    if (item.sizes && Object.keys(item.sizes).length > 0) {
+      sizeSummary = Object.entries(item.sizes).map(([vid, sizes]) => {
+        const vName = varietiesCache.find(v => v.id === vid);
+        const label = vName ? vName.shortForm || vName.name : vid;
+        return `<span class="vs-label">${label}:</span> ${Array.isArray(sizes) ? sizes.join(", ") : sizes}`;
+      }).join(" &nbsp;|&nbsp; ");
+    }
+
+    return `
+      <div class="variety-card" data-id="${item.id}">
+        <div class="variety-card-img">${imgsHtml}</div>
+        <div class="variety-card-body">
+          <div class="variety-card-name">${item.name}</div>
+          ${item.shortForm ? `<div class="variety-card-short">${item.shortForm}</div>` : ""}
+          ${sizeSummary ? `<div class="item-card-variety-sizes">${sizeSummary}</div>` : ""}
+          ${item.comment ? `<div class="item-card-comment">${item.comment}</div>` : ""}
+        </div>
+        <div class="variety-card-actions">
+          <button class="btn-edit" onclick="editItem('${item.id}')">Edit</button>
+          <button class="btn-delete" onclick="confirmDeleteItem('${item.id}', '${item.name.replace(/'/g, "\\'")}')">Delete</button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+/**
+ * Build the sizes-per-variety input rows inside the item form.
+ */
+function buildSizesPerVarietyUI(existingSizes = {}) {
+  const container = document.getElementById("itemSizesPerVariety");
+
+  if (!varietiesCache || varietiesCache.length === 0) {
+    container.innerHTML = '<div class="loading-msg">No varieties found. Add varieties first.</div>';
+    return;
+  }
+
+  container.innerHTML = varietiesCache.map(v => {
+    const existing = existingSizes[v.id];
+    const val = Array.isArray(existing) ? existing.join(", ") : (existing || "");
+    const availableSizes = (v.sizes || []).join(", ");
+
+    return `
+      <div class="variety-size-row">
+        <div class="variety-size-label">
+          ${v.name} (${v.shortForm || v.id})
+          <span class="variety-size-hint">Available: ${availableSizes || "none defined"}</span>
+        </div>
+        <input type="text" id="itemSizes_${v.id}" placeholder="e.g. ${availableSizes}" value="${val}" />
+      </div>`;
+  }).join("");
+}
+
+/**
+ * Update image previews when URLs change.
+ */
+function updateItemImagePreviews() {
+  const container = document.getElementById("itemImagePreviews");
+  const urls = [
+    document.getElementById("itemImage1").value.trim(),
+    document.getElementById("itemImage2").value.trim(),
+    document.getElementById("itemImage3").value.trim()
+  ].filter(u => u);
+
+  container.innerHTML = urls.map(u => `<img class="img-thumb" src="${u}" alt="Preview" />`).join("");
+}
+
+/**
+ * Open the item form for adding or editing.
+ */
+function openItemForm(item = null) {
+  const panel = document.getElementById("itemFormPanel");
+  const title = document.getElementById("itemFormTitle");
+
+  // Reset form
+  document.getElementById("itemId").value = "";
+  document.getElementById("itemName").value = "";
+  document.getElementById("itemShortForm").value = "";
+  document.getElementById("itemImage1").value = "";
+  document.getElementById("itemImage2").value = "";
+  document.getElementById("itemImage3").value = "";
+  document.getElementById("itemComment").value = "";
+  document.getElementById("itemImagePreviews").innerHTML = "";
+
+  if (item) {
+    title.textContent = "Edit Item";
+    document.getElementById("itemId").value = item.id;
+    document.getElementById("itemName").value = item.name || "";
+    document.getElementById("itemShortForm").value = item.shortForm || "";
+    if (item.images && item.images[0]) document.getElementById("itemImage1").value = item.images[0];
+    if (item.images && item.images[1]) document.getElementById("itemImage2").value = item.images[1];
+    if (item.images && item.images[2]) document.getElementById("itemImage3").value = item.images[2];
+    document.getElementById("itemComment").value = item.comment || "";
+    buildSizesPerVarietyUI(item.sizes || {});
+    updateItemImagePreviews();
+  } else {
+    title.textContent = "Add New Item";
+    buildSizesPerVarietyUI({});
+  }
+
+  panel.classList.remove("hidden");
+  document.getElementById("itemName").focus();
+
+  // Set up image preview listeners
+  ["itemImage1", "itemImage2", "itemImage3"].forEach(id => {
+    document.getElementById(id).oninput = updateItemImagePreviews;
+  });
+}
+
+/**
+ * Close the item form.
+ */
+function closeItemForm() {
+  document.getElementById("itemFormPanel").classList.add("hidden");
+}
+
+/**
+ * Load an item into the edit form.
+ */
+function editItem(id) {
+  const item = itemsCache.find(i => i.id == id);
+  if (item) openItemForm(item);
+}
+
+/**
+ * Save (add or update) an item via backend POST.
+ */
+async function saveItem() {
+  const name = document.getElementById("itemName").value.trim();
+  if (!name) {
+    showToast("Item name is required.", "error");
+    return;
+  }
+
+  // Collect sizes per variety
+  const sizes = {};
+  varietiesCache.forEach(v => {
+    const inp = document.getElementById(`itemSizes_${v.id}`);
+    if (inp) {
+      const sArr = inp.value.split(",").map(s => s.trim()).filter(s => s.length > 0);
+      if (sArr.length > 0) sizes[v.id] = sArr;
+    }
+  });
+
+  const images = [
+    document.getElementById("itemImage1").value.trim(),
+    document.getElementById("itemImage2").value.trim(),
+    document.getElementById("itemImage3").value.trim()
+  ].filter(u => u);
+
+  const itemData = {
+    id:        document.getElementById("itemId").value || null,
+    name:      name,
+    shortForm: document.getElementById("itemShortForm").value.trim(),
+    images:    images,
+    sizes:     sizes,
+    comment:   document.getElementById("itemComment").value.trim()
+  };
+
+  const btnText = document.getElementById("itemBtnText");
+  const spinner = document.getElementById("itemSpinner");
+
+  btnText.textContent = "Saving…";
+  spinner.classList.remove("hidden");
+
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "saveItem",
+        api_key: API_KEY,
+        item: itemData
+      }),
+      mode: "no-cors"
+    });
+
+    showToast(itemData.id ? "Item updated!" : "Item added!", "success");
+    closeItemForm();
+    setTimeout(() => loadItems(), 1000);
+  } catch (err) {
+    console.error("Save item error:", err);
+    showToast("Error saving item. Try again.", "error");
+  } finally {
+    btnText.textContent = "Save Item";
+    spinner.classList.add("hidden");
+  }
+}
+
+/**
+ * Confirm before deleting an item.
+ */
+function confirmDeleteItem(id, name) {
+  if (confirm(`Delete item "${name}"? This cannot be undone.`)) {
+    deleteItem(id);
+  }
+}
+
+/**
+ * Delete an item via backend POST.
+ */
+async function deleteItem(id) {
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "deleteItem",
+        api_key: API_KEY,
+        itemId: id
+      }),
+      mode: "no-cors"
+    });
+
+    showToast("Item deleted.", "success");
+    setTimeout(() => loadItems(), 1000);
+  } catch (err) {
+    console.error("Delete item error:", err);
+    showToast("Error deleting item. Try again.", "error");
   }
 }
