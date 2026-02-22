@@ -145,10 +145,32 @@
           </div>
 
           <div class="form-group">
-            <label>Images <span class="hint">(up to 3 URLs)</span></label>
-            <input type="url" id="itemImage1" class="item-img-input" placeholder="Image URL 1" autocomplete="off" />
-            <input type="url" id="itemImage2" class="item-img-input" placeholder="Image URL 2 (optional)" autocomplete="off" />
-            <input type="url" id="itemImage3" class="item-img-input" placeholder="Image URL 3 (optional)" autocomplete="off" />
+            <label>Images <span class="hint">(up to 3)</span></label>
+            <div class="multi-upload-group">
+              <div class="upload-row">
+                <input type="file" id="itemImageFile1" accept="image/*" class="file-input" onchange="handleItemImageUpload(this, 1)" />
+                <label for="itemImageFile1" class="btn-upload">Image 1</label>
+                <span id="itemFileName1" class="file-name">No file chosen</span>
+                <span id="itemUploadStatus1" class="upload-status"></span>
+              </div>
+              <input type="hidden" id="itemImage1" />
+
+              <div class="upload-row">
+                <input type="file" id="itemImageFile2" accept="image/*" class="file-input" onchange="handleItemImageUpload(this, 2)" />
+                <label for="itemImageFile2" class="btn-upload">Image 2</label>
+                <span id="itemFileName2" class="file-name">No file chosen</span>
+                <span id="itemUploadStatus2" class="upload-status"></span>
+              </div>
+              <input type="hidden" id="itemImage2" />
+
+              <div class="upload-row">
+                <input type="file" id="itemImageFile3" accept="image/*" class="file-input" onchange="handleItemImageUpload(this, 3)" />
+                <label for="itemImageFile3" class="btn-upload">Image 3</label>
+                <span id="itemFileName3" class="file-name">No file chosen</span>
+                <span id="itemUploadStatus3" class="upload-status"></span>
+              </div>
+              <input type="hidden" id="itemImage3" />
+            </div>
             <div id="itemImagePreviews" class="item-image-previews"></div>
           </div>
 

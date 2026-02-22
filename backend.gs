@@ -50,10 +50,13 @@ function doPost(e) {
     // ── Route by action ─────────────────────────────────────
     var action = payload.action || "submitOrder";
 
+    if (action === "getVarieties")  return getVarieties();
     if (action === "saveVariety")   return saveVariety(payload);
     if (action === "deleteVariety") return deleteVariety(payload);
+    if (action === "getItems")      return getItems();
     if (action === "saveItem")      return saveItem(payload);
     if (action === "deleteItem")    return deleteItem(payload);
+    if (action === "uploadImage")   return uploadImage(payload);
 
     // Default: submit orders
     return submitOrders(payload);
@@ -417,4 +420,53 @@ function deleteItem(payload) {
   }
 
   return jsonResponse(404, { error: "Item not found." });
+}
+
+// ─── IMAGE UPLOAD ───────────────────────────────────────────
+
+/**
+ * Receives a base64-encoded image, saves it to Google Drive,
+ * sets sharing to "anyone with link", and returns the viewable URL.
+ * Expects payload: { action: "uploadImage", fileName: "img.jpg", mimeType: "image/jpeg", base64: "..." }
+ */
+function uploadImage(payload) {
+  var base64 = payload.base64;
+  var fileName = payload.fileName || ("image_" + new Date().getTime() + ".jpg");
+  var mimeType = payload.mimeType || "image/jpeg";
+
+  if (!base64) {
+    return jsonResponse(400, { error: "No image data provided." });
+  }
+
+  try {
+    // Decode base64 to blob
+    var decoded = Utilities.base64Decode(base64);
+    var blob = Utilities.newBlob(decoded, mimeType, fileName);
+
+    // Get or create an "Images" folder in Drive
+    var folders = DriveApp.getFoldersByName("TravellingOrderEngine_Images");
+    var folder;
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder("TravellingOrderEngine_Images");
+    }
+
+    // Create the file in the folder
+    var file = folder.createFile(blob);
+
+    // Set sharing to anyone with the link can view
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    var fileId = file.getId();
+    var viewUrl = "https://lh3.googleusercontent.com/d/" + fileId;
+
+    return jsonResponse(200, {
+      status: "success",
+      url: viewUrl,
+      fileId: fileId
+    });
+  } catch (err) {
+    return jsonResponse(500, { error: "Image upload failed: " + err.toString() });
+  }
 }

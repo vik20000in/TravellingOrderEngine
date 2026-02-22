@@ -383,17 +383,10 @@ async function doSubmit() {
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY
-      },
-      body: JSON.stringify({ orders: rows }),
-      mode: "no-cors" // Apps Script requires no-cors from browser
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "submitOrder", api_key: API_KEY, orders: rows }),
+      mode: "cors"
     });
-
-    // With no-cors the response is opaque; we assume success if no error thrown.
-    // If you deploy Apps Script with "Anyone" access you can switch to mode:"cors"
-    // and read resp.json() for server-side validation feedback.
 
     showToast("Order saved successfully!", "success");
     clearDraft();
@@ -588,8 +581,10 @@ async function loadVarieties() {
   listEl.innerHTML = '<div class="loading-msg">Loading varieties…</div>';
 
   try {
-    const resp = await fetch(`${API_URL}?action=getVarieties`, {
-      method: "GET",
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "getVarieties", api_key: API_KEY }),
       mode: "cors"
     });
     const data = await resp.json();
@@ -666,6 +661,14 @@ function openVarietyForm(variety = null) {
   document.getElementById("varietyImageURL").value = "";
   document.getElementById("varietySizes").value = "";
   document.getElementById("varietyImagePreview").classList.add("hidden");
+
+  // Reset file upload UI
+  const vFileInput = document.getElementById("varietyImageFile");
+  if (vFileInput) vFileInput.value = "";
+  const vfnEl = document.getElementById("varietyFileName");
+  if (vfnEl) vfnEl.textContent = "No file chosen";
+  const vstEl = document.getElementById("varietyUploadStatus");
+  if (vstEl) { vstEl.textContent = ""; vstEl.className = "upload-status"; }
 
   if (variety) {
     title.textContent = "Edit Variety";
@@ -745,20 +748,20 @@ async function saveVariety() {
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({
         action: "saveVariety",
         api_key: API_KEY,
         variety: varietyData
       }),
-      mode: "no-cors"
+      mode: "cors"
     });
 
     showToast(varietyData.id ? "Variety updated!" : "Variety added!", "success");
     closeVarietyForm();
 
-    // Reload list after a brief delay (no-cors can't read response)
-    setTimeout(() => loadVarieties(), 1000);
+    // Reload list
+    setTimeout(() => loadVarieties(), 500);
   } catch (err) {
     console.error("Save variety error:", err);
     showToast("Error saving variety. Try again.", "error");
@@ -784,17 +787,17 @@ async function deleteVariety(id) {
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({
         action: "deleteVariety",
         api_key: API_KEY,
         varietyId: id
       }),
-      mode: "no-cors"
+      mode: "cors"
     });
 
     showToast("Variety deleted.", "success");
-    setTimeout(() => loadVarieties(), 1000);
+    setTimeout(() => loadVarieties(), 500);
   } catch (err) {
     console.error("Delete variety error:", err);
     showToast("Error deleting variety. Try again.", "error");
@@ -812,8 +815,10 @@ async function loadItems() {
   listEl.innerHTML = '<div class="loading-msg">Loading items…</div>';
 
   try {
-    const resp = await fetch(`${API_URL}?action=getItems`, {
-      method: "GET",
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "getItems", api_key: API_KEY }),
       mode: "cors"
     });
     const data = await resp.json();
@@ -941,6 +946,16 @@ function openItemForm(item = null) {
   document.getElementById("itemComment").value = "";
   document.getElementById("itemImagePreviews").innerHTML = "";
 
+  // Reset file upload UI
+  [1, 2, 3].forEach(n => {
+    const fileInput = document.getElementById(`itemImageFile${n}`);
+    if (fileInput) fileInput.value = "";
+    const fnEl = document.getElementById(`itemFileName${n}`);
+    if (fnEl) fnEl.textContent = "No file chosen";
+    const stEl = document.getElementById(`itemUploadStatus${n}`);
+    if (stEl) { stEl.textContent = ""; stEl.className = "upload-status"; }
+  });
+
   if (item) {
     title.textContent = "Edit Item";
     document.getElementById("itemId").value = item.id;
@@ -959,11 +974,6 @@ function openItemForm(item = null) {
 
   panel.classList.remove("hidden");
   document.getElementById("itemName").focus();
-
-  // Set up image preview listeners
-  ["itemImage1", "itemImage2", "itemImage3"].forEach(id => {
-    document.getElementById(id).oninput = updateItemImagePreviews;
-  });
 }
 
 /**
@@ -1025,18 +1035,18 @@ async function saveItem() {
   try {
     await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({
         action: "saveItem",
         api_key: API_KEY,
         item: itemData
       }),
-      mode: "no-cors"
+      mode: "cors"
     });
 
     showToast(itemData.id ? "Item updated!" : "Item added!", "success");
     closeItemForm();
-    setTimeout(() => loadItems(), 1000);
+    setTimeout(() => loadItems(), 500);
   } catch (err) {
     console.error("Save item error:", err);
     showToast("Error saving item. Try again.", "error");
@@ -1062,19 +1072,121 @@ async function deleteItem(id) {
   try {
     await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({
         action: "deleteItem",
         api_key: API_KEY,
         itemId: id
       }),
-      mode: "no-cors"
+      mode: "cors"
     });
 
     showToast("Item deleted.", "success");
-    setTimeout(() => loadItems(), 1000);
+    setTimeout(() => loadItems(), 500);
   } catch (err) {
     console.error("Delete item error:", err);
     showToast("Error deleting item. Try again.", "error");
+  }
+}
+
+// ─── IMAGE UPLOAD HELPERS ──────────────────────────────────
+
+/**
+ * Convert a File to base64 string (without the data: prefix).
+ */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Remove "data:image/jpeg;base64," prefix
+      const base64 = reader.result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Upload an image file to Google Drive via the backend.
+ * Returns the viewable URL.
+ */
+async function uploadImageToBackend(file) {
+  const base64 = await fileToBase64(file);
+
+  const resp = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({
+      action: "uploadImage",
+      api_key: API_KEY,
+      fileName: file.name,
+      mimeType: file.type || "image/jpeg",
+      base64: base64
+    }),
+    mode: "cors"
+  });
+
+  const data = await resp.json();
+  if (data.status === "success" && data.url) {
+    return data.url;
+  }
+  throw new Error(data.error || "Upload failed");
+}
+
+/**
+ * Handle variety image file upload.
+ */
+async function handleVarietyImageUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const fileNameEl = document.getElementById("varietyFileName");
+  const statusEl = document.getElementById("varietyUploadStatus");
+
+  fileNameEl.textContent = file.name;
+  statusEl.textContent = "Uploading…";
+  statusEl.className = "upload-status uploading";
+
+  try {
+    const url = await uploadImageToBackend(file);
+    document.getElementById("varietyImageURL").value = url;
+    document.getElementById("varietyPreviewImg").src = url;
+    document.getElementById("varietyImagePreview").classList.remove("hidden");
+    statusEl.textContent = "✓ Uploaded";
+    statusEl.className = "upload-status done";
+  } catch (err) {
+    console.error("Variety image upload error:", err);
+    statusEl.textContent = "✗ Failed";
+    statusEl.className = "upload-status error";
+    showToast("Image upload failed. Try again.", "error");
+  }
+}
+
+/**
+ * Handle item image file upload (slot 1, 2, or 3).
+ */
+async function handleItemImageUpload(input, slot) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const fileNameEl = document.getElementById(`itemFileName${slot}`);
+  const statusEl = document.getElementById(`itemUploadStatus${slot}`);
+
+  fileNameEl.textContent = file.name;
+  statusEl.textContent = "Uploading…";
+  statusEl.className = "upload-status uploading";
+
+  try {
+    const url = await uploadImageToBackend(file);
+    document.getElementById(`itemImage${slot}`).value = url;
+    statusEl.textContent = "✓ Uploaded";
+    statusEl.className = "upload-status done";
+    updateItemImagePreviews();
+  } catch (err) {
+    console.error(`Item image ${slot} upload error:`, err);
+    statusEl.textContent = "✗ Failed";
+    statusEl.className = "upload-status error";
+    showToast("Image upload failed. Try again.", "error");
   }
 }

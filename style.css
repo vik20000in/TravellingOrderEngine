@@ -917,3 +917,75 @@ main {
   border-color: #533483;
   background: #fff;
 }
+
+/* ---------- FILE UPLOAD STYLES ---------- */
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.file-input {
+  display: none;
+}
+
+.btn-upload {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #0f3460;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-height: 38px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.btn-upload:hover { background: #16213e; }
+
+.file-name {
+  font-size: 0.82rem;
+  color: #888;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.upload-status.uploading { color: #f39c12; }
+.upload-status.done { color: #00b894; }
+.upload-status.error { color: #e94560; }
+
+.url-fallback {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: #fafbfd;
+  color: #1a1a2e;
+  outline: none;
+  margin-top: 0.3rem;
+  transition: border-color 0.2s;
+}
+
+.url-fallback:focus {
+  border-color: #533483;
+}
+
+.multi-upload-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
