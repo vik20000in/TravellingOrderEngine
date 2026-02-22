@@ -10,6 +10,16 @@
   padding: 0;
 }
 
+/* Make all text inputs, selects, textareas have a clearly visible border */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+select,
+textarea {
+  border: 2px solid #888 !important;
+}
+
 html {
   font-size: 16px;
   -webkit-tap-highlight-color: transparent;
