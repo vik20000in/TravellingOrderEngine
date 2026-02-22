@@ -1129,3 +1129,21 @@ main {
   color: #00b894;
   margin-top: 0.2rem;
 }
+
+/* ---------- CUSTOMER CARD ---------- */
+.customer-card-phone {
+  font-size: 0.82rem;
+  color: #555;
+  margin-top: 0.15rem;
+}
+
+.customer-card-phone::before {
+  content: "📞 ";
+}
+
+.customer-card-address {
+  font-size: 0.78rem;
+  color: #888;
+  margin-top: 0.1rem;
+  white-space: pre-line;
+}

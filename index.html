@@ -60,6 +60,7 @@
       <div class="master-tabs">
         <button class="master-tab active" data-tab="variety" onclick="switchMasterTab('variety')">Varieties</button>
         <button class="master-tab" data-tab="items" onclick="switchMasterTab('items')">Items</button>
+        <button class="master-tab" data-tab="customers" onclick="switchMasterTab('customers')">Customers</button>
       </div>
 
       <!-- Variety Tab Content -->
@@ -210,6 +211,72 @@
             <button class="btn-confirm" onclick="saveItem()">
               <span id="itemBtnText">Save Item</span>
               <span id="itemSpinner" class="spinner hidden"></span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Customers Tab Content -->
+      <div id="masterTab-customers" class="master-tab-content">
+
+        <div class="master-header-row">
+          <h2>Manage Customers</h2>
+          <button class="btn-add" onclick="openCustomerForm()">+ Add Customer</button>
+        </div>
+
+        <!-- Customer List -->
+        <div id="customerList" class="variety-list">
+          <div class="loading-msg">Loading customers…</div>
+        </div>
+
+        <!-- Customer Form (hidden by default) -->
+        <div id="customerFormPanel" class="variety-form-panel hidden">
+          <h3 id="customerFormTitle">Add New Customer</h3>
+          <input type="hidden" id="customerId" />
+
+          <div class="form-group">
+            <label for="customerName">Customer Name <span class="req">*</span></label>
+            <input type="text" id="customerName" placeholder="e.g. Sharma Textiles" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label for="customerPhone">Phone Number <span class="req">*</span></label>
+            <input type="tel" id="customerPhone" placeholder="e.g. 9876543210" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label for="customerAddress">Address</label>
+            <textarea id="customerAddress" placeholder="Optional address…" rows="2"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Images <span class="hint">(optional, up to 2)</span></label>
+            <div class="multi-upload-group">
+              <div class="upload-row">
+                <input type="file" id="custImageFile1" accept="image/*" class="file-input" onchange="handleCustImageUpload(this, 1)" />
+                <label for="custImageFile1" class="btn-upload">Image 1</label>
+                <span id="custFileName1" class="file-name">No file chosen</span>
+                <span id="custUploadStatus1" class="upload-status"></span>
+              </div>
+              <input type="hidden" id="custImage1" />
+
+              <div class="upload-row">
+                <input type="file" id="custImageFile2" accept="image/*" class="file-input" onchange="handleCustImageUpload(this, 2)" />
+                <label for="custImageFile2" class="btn-upload">Image 2</label>
+                <span id="custFileName2" class="file-name">No file chosen</span>
+                <span id="custUploadStatus2" class="upload-status"></span>
+              </div>
+              <input type="hidden" id="custImage2" />
+            </div>
+            <div id="custImagePreviews" class="item-image-previews"></div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-cancel" onclick="closeCustomerForm()">Cancel</button>
+            <button class="btn-confirm" onclick="saveCustomer()">
+              <span id="customerBtnText">Save Customer</span>
+              <span id="customerSpinner" class="spinner hidden"></span>
             </button>
           </div>
         </div>

@@ -59,6 +59,7 @@ const colorOptions = [
 let isSubmitting = false; // prevents duplicate submissions
 let varietiesCache = [];  // cached varieties from backend
 let itemsCache = [];      // cached items from backend
+let customersCache = [];  // cached customers from backend
 let currentPage = "orders"; // current active page
 
 // ─── INITIALIZATION ─────────────────────────────────────────
@@ -570,6 +571,7 @@ function switchMasterTab(tab) {
   // Load data for the active tab
   if (tab === "variety") loadVarieties();
   if (tab === "items") loadItems();
+  if (tab === "customers") loadCustomers();
 }
 
 // ─── VARIETY MASTER DATA ────────────────────────────────────
@@ -1213,6 +1215,244 @@ async function deleteItem(id) {
   } catch (err) {
     console.error("Delete item error:", err);
     showToast("Error deleting item. Try again.", "error");
+  }
+}
+
+// ─── CUSTOMER MASTER DATA ───────────────────────────────────
+
+/**
+ * Fetch all customers from the backend.
+ */
+async function loadCustomers() {
+  const listEl = document.getElementById("customerList");
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="loading-msg">Loading customers…</div>';
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "getCustomers", api_key: API_KEY }),
+      mode: "cors"
+    });
+    const data = await resp.json();
+
+    if (data.status === "success" && data.customers) {
+      customersCache = data.customers;
+      renderCustomerList(data.customers);
+    } else {
+      listEl.innerHTML = '<div class="loading-msg">Failed to load customers.</div>';
+    }
+  } catch (err) {
+    console.error("Load customers error:", err);
+    if (customersCache.length > 0) {
+      renderCustomerList(customersCache);
+      showToast("Showing cached data. Network error.", "error");
+    } else {
+      listEl.innerHTML = '<div class="loading-msg">Network error. Please check your connection.</div>';
+    }
+  }
+}
+
+/**
+ * Render customer list cards.
+ */
+function renderCustomerList(customers) {
+  const listEl = document.getElementById("customerList");
+
+  if (!customers || customers.length === 0) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">👤</div>
+        <p>No customers found. Click "+ Add Customer" to get started.</p>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = customers.map(c => {
+    const imgHtml = (c.images && c.images.length > 0)
+      ? `<img src="${c.images[0]}" alt="${c.name}" />`
+      : `<div class="placeholder-icon">👤</div>`;
+
+    return `
+      <div class="variety-card" data-id="${c.id}">
+        <div class="variety-card-img">${imgHtml}</div>
+        <div class="variety-card-body">
+          <div class="variety-card-name">${c.name}</div>
+          ${c.phone ? `<div class="customer-card-phone">${c.phone}</div>` : ""}
+          ${c.address ? `<div class="customer-card-address">${c.address}</div>` : ""}
+        </div>
+        <div class="variety-card-actions">
+          <button class="btn-edit" onclick="editCustomer('${c.id}')">Edit</button>
+          <button class="btn-delete" onclick="confirmDeleteCustomer('${c.id}', '${c.name.replace(/'/g, "\\'")}')">Delete</button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+/**
+ * Open the customer form for adding or editing.
+ */
+function openCustomerForm(customer = null) {
+  const panel = document.getElementById("customerFormPanel");
+  const title = document.getElementById("customerFormTitle");
+
+  // Reset form
+  document.getElementById("customerId").value = "";
+  document.getElementById("customerName").value = "";
+  document.getElementById("customerPhone").value = "";
+  document.getElementById("customerAddress").value = "";
+  document.getElementById("custImage1").value = "";
+  document.getElementById("custImage2").value = "";
+  document.getElementById("custImagePreviews").innerHTML = "";
+
+  // Reset file upload UI
+  [1, 2].forEach(n => {
+    const fileInput = document.getElementById(`custImageFile${n}`);
+    if (fileInput) fileInput.value = "";
+    const fnEl = document.getElementById(`custFileName${n}`);
+    if (fnEl) fnEl.textContent = "No file chosen";
+    const stEl = document.getElementById(`custUploadStatus${n}`);
+    if (stEl) { stEl.textContent = ""; stEl.className = "upload-status"; }
+  });
+
+  if (customer) {
+    title.textContent = "Edit Customer";
+    document.getElementById("customerId").value = customer.id;
+    document.getElementById("customerName").value = customer.name || "";
+    document.getElementById("customerPhone").value = customer.phone || "";
+    document.getElementById("customerAddress").value = customer.address || "";
+    if (customer.images && customer.images[0]) document.getElementById("custImage1").value = customer.images[0];
+    if (customer.images && customer.images[1]) document.getElementById("custImage2").value = customer.images[1];
+    updateCustImagePreviews();
+  } else {
+    title.textContent = "Add New Customer";
+  }
+
+  panel.classList.remove("hidden");
+  document.getElementById("customerName").focus();
+}
+
+function closeCustomerForm() {
+  document.getElementById("customerFormPanel").classList.add("hidden");
+}
+
+function editCustomer(id) {
+  const customer = customersCache.find(c => c.id == id);
+  if (customer) openCustomerForm(customer);
+}
+
+function updateCustImagePreviews() {
+  const container = document.getElementById("custImagePreviews");
+  const urls = [
+    document.getElementById("custImage1").value.trim(),
+    document.getElementById("custImage2").value.trim()
+  ].filter(u => u);
+  container.innerHTML = urls.map(u => `<img class="img-thumb" src="${u}" alt="Preview" />`).join("");
+}
+
+/**
+ * Handle customer image file upload.
+ */
+async function handleCustImageUpload(input, index) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const fnEl = document.getElementById(`custFileName${index}`);
+  const stEl = document.getElementById(`custUploadStatus${index}`);
+  fnEl.textContent = file.name;
+  stEl.textContent = "Uploading…";
+  stEl.className = "upload-status uploading";
+
+  try {
+    const url = await uploadImageToBackend(file);
+    document.getElementById(`custImage${index}`).value = url;
+    stEl.textContent = "Done ✓";
+    stEl.className = "upload-status done";
+    updateCustImagePreviews();
+  } catch (err) {
+    console.error("Customer image upload error:", err);
+    stEl.textContent = "Failed";
+    stEl.className = "upload-status error";
+  }
+}
+
+/**
+ * Save (add or update) a customer.
+ */
+async function saveCustomer() {
+  const name = document.getElementById("customerName").value.trim();
+  const phone = document.getElementById("customerPhone").value.trim();
+
+  if (!name) { showToast("Customer name is required.", "error"); return; }
+  if (!phone) { showToast("Phone number is required.", "error"); return; }
+
+  const images = [
+    document.getElementById("custImage1").value.trim(),
+    document.getElementById("custImage2").value.trim()
+  ].filter(u => u);
+
+  const customerData = {
+    id:      document.getElementById("customerId").value || null,
+    name:    name,
+    phone:   phone,
+    address: document.getElementById("customerAddress").value.trim(),
+    images:  images
+  };
+
+  const btnText = document.getElementById("customerBtnText");
+  const spinner = document.getElementById("customerSpinner");
+  btnText.textContent = "Saving…";
+  spinner.classList.remove("hidden");
+
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "saveCustomer",
+        api_key: API_KEY,
+        customer: customerData
+      }),
+      mode: "cors"
+    });
+
+    showToast(customerData.id ? "Customer updated!" : "Customer added!", "success");
+    closeCustomerForm();
+    setTimeout(() => loadCustomers(), 500);
+  } catch (err) {
+    console.error("Save customer error:", err);
+    showToast("Error saving customer. Try again.", "error");
+  } finally {
+    btnText.textContent = "Save Customer";
+    spinner.classList.add("hidden");
+  }
+}
+
+function confirmDeleteCustomer(id, name) {
+  if (confirm(`Delete customer "${name}"? This cannot be undone.`)) {
+    deleteCustomer(id);
+  }
+}
+
+async function deleteCustomer(id) {
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "deleteCustomer",
+        api_key: API_KEY,
+        customerId: id
+      }),
+      mode: "cors"
+    });
+
+    showToast("Customer deleted.", "success");
+    setTimeout(() => loadCustomers(), 500);
+  } catch (err) {
+    console.error("Delete customer error:", err);
+    showToast("Error deleting customer. Try again.", "error");
   }
 }
 

@@ -22,6 +22,9 @@ const ITEM_SHEET = "Items";
 /** Name of the Google Sheet tab for Color master list */
 const COLOR_SHEET = "Colors";
 
+/** Name of the Google Sheet tab for Customer master data */
+const CUSTOMER_SHEET = "Customers";
+
 // ─── doPost – MAIN ENTRY POINT ──────────────────────────────
 
 /**
@@ -60,6 +63,9 @@ function doPost(e) {
     if (action === "saveItem")      return saveItem(payload);
     if (action === "deleteItem")    return deleteItem(payload);
     if (action === "getColors")     return getColors();
+    if (action === "getCustomers")  return getCustomers();
+    if (action === "saveCustomer")  return saveCustomer(payload);
+    if (action === "deleteCustomer") return deleteCustomer(payload);
     if (action === "uploadImage")   return uploadImage(payload);
 
     // Default: submit orders
@@ -442,6 +448,100 @@ function deleteItem(payload) {
   }
 
   return jsonResponse(404, { error: "Item not found." });
+}
+
+// ─── CUSTOMER MASTER DATA ───────────────────────────────────
+
+/**
+ * Ensures the Customers sheet exists with proper headers.
+ * Columns: ID, Name, Phone, Address, Image1, Image2
+ */
+function getOrCreateCustomerSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CUSTOMER_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(CUSTOMER_SHEET);
+    sheet.appendRow(["ID", "Name", "Phone", "Address", "Image1", "Image2"]);
+    sheet.getRange(1, 1, 1, 6).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Returns all customers as JSON array.
+ */
+function getCustomers() {
+  var sheet = getOrCreateCustomerSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return jsonResponse(200, { status: "success", customers: [] });
+  }
+  var data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+  var customers = data.map(function(row) {
+    return {
+      id:      row[0],
+      name:    row[1],
+      phone:   row[2] ? row[2].toString() : "",
+      address: row[3] || "",
+      images:  [row[4] || "", row[5] || ""].filter(function(u){ return u !== ""; })
+    };
+  });
+  return jsonResponse(200, { status: "success", customers: customers });
+}
+
+/**
+ * Save (add or update) a customer.
+ * Expects payload: { action: "saveCustomer", customer: { id, name, phone, address, images:[] } }
+ */
+function saveCustomer(payload) {
+  var c = payload.customer;
+  if (!c || !c.name) {
+    return jsonResponse(400, { error: "Customer name is required." });
+  }
+  if (!c.phone) {
+    return jsonResponse(400, { error: "Customer phone is required." });
+  }
+
+  var sheet = getOrCreateCustomerSheet();
+  var imgs = c.images || [];
+
+  if (c.id) {
+    var lastRow = sheet.getLastRow();
+    for (var r = 2; r <= lastRow; r++) {
+      if (sheet.getRange(r, 1).getValue() == c.id) {
+        sheet.getRange(r, 2).setValue(c.name);
+        sheet.getRange(r, 3).setValue(c.phone || "");
+        sheet.getRange(r, 4).setValue(c.address || "");
+        sheet.getRange(r, 5).setValue(imgs[0] || "");
+        sheet.getRange(r, 6).setValue(imgs[1] || "");
+        return jsonResponse(200, { status: "success", message: "Customer updated.", id: c.id });
+      }
+    }
+  }
+
+  var newId = "C" + new Date().getTime();
+  sheet.appendRow([newId, c.name, c.phone || "", c.address || "", imgs[0] || "", imgs[1] || ""]);
+  return jsonResponse(200, { status: "success", message: "Customer added.", id: newId });
+}
+
+/**
+ * Delete a customer by ID.
+ */
+function deleteCustomer(payload) {
+  var id = payload.customerId;
+  if (!id) {
+    return jsonResponse(400, { error: "Customer ID is required." });
+  }
+  var sheet = getOrCreateCustomerSheet();
+  var lastRow = sheet.getLastRow();
+  for (var r = 2; r <= lastRow; r++) {
+    if (sheet.getRange(r, 1).getValue() == id) {
+      sheet.deleteRow(r);
+      return jsonResponse(200, { status: "success", message: "Customer deleted." });
+    }
+  }
+  return jsonResponse(404, { error: "Customer not found." });
 }
 
 // ─── IMAGE UPLOAD ───────────────────────────────────────────
