@@ -861,6 +861,11 @@ function renderItemList(items) {
       ? `<div class="item-card-images">${item.images.map(u => `<img src="${u}" alt="" />`).join("")}</div>`
       : `<div class="placeholder-icon">🖼</div>`;
 
+    // Colors
+    const colorsHtml = (item.colors && item.colors.length > 0)
+      ? `<div class="item-card-colors">${item.colors.map(c => `<span>${c}</span>`).join("")}</div>`
+      : "";
+
     // Sizes per variety summary
     let sizeSummary = "";
     if (item.sizes && Object.keys(item.sizes).length > 0) {
@@ -877,6 +882,7 @@ function renderItemList(items) {
         <div class="variety-card-body">
           <div class="variety-card-name">${item.name}</div>
           ${item.shortForm ? `<div class="variety-card-short">${item.shortForm}</div>` : ""}
+          ${colorsHtml}
           ${sizeSummary ? `<div class="item-card-variety-sizes">${sizeSummary}</div>` : ""}
           ${item.comment ? `<div class="item-card-comment">${item.comment}</div>` : ""}
         </div>
@@ -891,7 +897,7 @@ function renderItemList(items) {
 /**
  * Build the sizes-per-variety input rows inside the item form.
  */
-function buildSizesPerVarietyUI(existingSizes = {}) {
+function buildSizesPerVarietyUI(existingSizes = {}, isNewItem = false) {
   const container = document.getElementById("itemSizesPerVariety");
 
   if (!varietiesCache || varietiesCache.length === 0) {
@@ -901,7 +907,15 @@ function buildSizesPerVarietyUI(existingSizes = {}) {
 
   container.innerHTML = varietiesCache.map(v => {
     const existing = existingSizes[v.id];
-    const val = Array.isArray(existing) ? existing.join(", ") : (existing || "");
+    // For new items, default to all sizes from the variety
+    let val;
+    if (existing) {
+      val = Array.isArray(existing) ? existing.join(", ") : existing;
+    } else if (isNewItem && v.sizes && v.sizes.length > 0) {
+      val = v.sizes.join(", ");
+    } else {
+      val = "";
+    }
     const availableSizes = (v.sizes || []).join(", ");
 
     return `
@@ -929,6 +943,66 @@ function updateItemImagePreviews() {
   container.innerHTML = urls.map(u => `<img class="img-thumb" src="${u}" alt="Preview" />`).join("");
 }
 
+// ─── ITEM COLOR HELPERS ─────────────────────────────────────
+
+/** Current colors being edited (array of strings). */
+window._itemColors = [];
+
+/**
+ * Render color tags in the item form.
+ */
+function renderItemColorTags() {
+  const container = document.getElementById("itemColorTags");
+  if (!container) return;
+  container.innerHTML = (window._itemColors || []).map((c, i) =>
+    `<span class="color-tag">${c}<span class="remove-color" onclick="removeItemColor(${i})">&times;</span></span>`
+  ).join("");
+}
+
+/**
+ * Add a color from the input field.
+ */
+function addItemColor() {
+  const inp = document.getElementById("itemColorInput");
+  const val = inp.value.trim();
+  if (!val) return;
+  if (!window._itemColors) window._itemColors = [];
+  // Avoid duplicates (case-insensitive)
+  if (window._itemColors.some(c => c.toLowerCase() === val.toLowerCase())) {
+    showToast("Color already added.", "error");
+    inp.value = "";
+    inp.focus();
+    return;
+  }
+  window._itemColors.push(val);
+  renderItemColorTags();
+  inp.value = "";
+  inp.focus();
+}
+
+/**
+ * Remove a color by index.
+ */
+function removeItemColor(index) {
+  window._itemColors.splice(index, 1);
+  renderItemColorTags();
+}
+
+/**
+ * Handle Enter key in color input.
+ */
+document.addEventListener("DOMContentLoaded", () => {
+  const colorInput = document.getElementById("itemColorInput");
+  if (colorInput) {
+    colorInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addItemColor();
+      }
+    });
+  }
+});
+
 /**
  * Open the item form for adding or editing.
  */
@@ -945,6 +1019,9 @@ function openItemForm(item = null) {
   document.getElementById("itemImage3").value = "";
   document.getElementById("itemComment").value = "";
   document.getElementById("itemImagePreviews").innerHTML = "";
+  document.getElementById("itemColorTags").innerHTML = "";
+  document.getElementById("itemColorInput").value = "";
+  window._itemColors = [];
 
   // Reset file upload UI
   [1, 2, 3].forEach(n => {
@@ -965,11 +1042,16 @@ function openItemForm(item = null) {
     if (item.images && item.images[1]) document.getElementById("itemImage2").value = item.images[1];
     if (item.images && item.images[2]) document.getElementById("itemImage3").value = item.images[2];
     document.getElementById("itemComment").value = item.comment || "";
-    buildSizesPerVarietyUI(item.sizes || {});
+    // Populate colors
+    window._itemColors = item.colors || [];
+    renderItemColorTags();
+    buildSizesPerVarietyUI(item.sizes || {}, false);
     updateItemImagePreviews();
   } else {
     title.textContent = "Add New Item";
-    buildSizesPerVarietyUI({});
+    window._itemColors = [];
+    renderItemColorTags();
+    buildSizesPerVarietyUI({}, true);
   }
 
   panel.classList.remove("hidden");
@@ -1023,6 +1105,7 @@ async function saveItem() {
     shortForm: document.getElementById("itemShortForm").value.trim(),
     images:    images,
     sizes:     sizes,
+    colors:    window._itemColors || [],
     comment:   document.getElementById("itemComment").value.trim()
   };
 

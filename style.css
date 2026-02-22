@@ -989,3 +989,100 @@ main {
   flex-direction: column;
   gap: 0.3rem;
 }
+
+/* ---------- COLOR TAGS ---------- */
+.colors-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.colors-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.colors-input-row input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: #fafbfd;
+  color: #1a1a2e;
+  outline: none;
+}
+
+.colors-input-row input:focus {
+  border-color: #533483;
+}
+
+.btn-add-color {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: #533483;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-add-color:active {
+  background: #3d2466;
+}
+
+.color-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.color-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  background: #eee5ff;
+  color: #533483;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.color-tag .remove-color {
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #e94560;
+  font-weight: 700;
+  margin-left: 0.15rem;
+}
+
+.color-tag .remove-color:hover {
+  color: #c0392b;
+}
+
+/* Item card color pills */
+.item-card-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.item-card-colors span {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  background: #eee5ff;
+  color: #533483;
+  font-size: 0.75rem;
+  font-weight: 600;
+}

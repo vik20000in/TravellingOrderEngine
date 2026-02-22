@@ -327,9 +327,16 @@ function getOrCreateItemSheet() {
   var sheet = ss.getSheetByName(ITEM_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(ITEM_SHEET);
-    sheet.appendRow(["ID", "Name", "ShortForm", "Image1", "Image2", "Image3", "SizesJSON", "Comment"]);
-    sheet.getRange(1, 1, 1, 8).setFontWeight("bold");
+    sheet.appendRow(["ID", "Name", "ShortForm", "Image1", "Image2", "Image3", "SizesJSON", "Comment", "Colors"]);
+    sheet.getRange(1, 1, 1, 9).setFontWeight("bold");
     sheet.setFrozenRows(1);
+  } else {
+    // Ensure Colors column exists (migration for existing sheets)
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (headers.indexOf("Colors") === -1) {
+      var nextCol = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nextCol).setValue("Colors").setFontWeight("bold");
+    }
   }
   return sheet;
 }
@@ -345,7 +352,7 @@ function getItems() {
     return jsonResponse(200, { status: "success", items: [] });
   }
 
-  var data = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+  var data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
   var items = data.map(function(row) {
     var sizesObj = {};
     try {
@@ -358,7 +365,8 @@ function getItems() {
       shortForm: row[2],
       images:    [row[3] || "", row[4] || "", row[5] || ""].filter(function(u){ return u !== ""; }),
       sizes:     sizesObj,
-      comment:   row[7] || ""
+      comment:   row[7] || "",
+      colors:    row[8] ? row[8].toString().split(",").map(function(c){ return c.trim(); }) : []
     };
   });
 
@@ -378,6 +386,7 @@ function saveItem(payload) {
   var sheet = getOrCreateItemSheet();
   var imgs = item.images || [];
   var sizesStr = JSON.stringify(item.sizes || {});
+  var colorsStr = (item.colors && Array.isArray(item.colors)) ? item.colors.join(", ") : (item.colors || "");
 
   if (item.id) {
     var lastRow = sheet.getLastRow();
@@ -390,13 +399,14 @@ function saveItem(payload) {
         sheet.getRange(r, 6).setValue(imgs[2] || "");
         sheet.getRange(r, 7).setValue(sizesStr);
         sheet.getRange(r, 8).setValue(item.comment || "");
+        sheet.getRange(r, 9).setValue(colorsStr);
         return jsonResponse(200, { status: "success", message: "Item updated.", id: item.id });
       }
     }
   }
 
   var newId = "I" + new Date().getTime();
-  sheet.appendRow([newId, item.name, item.shortForm || "", imgs[0] || "", imgs[1] || "", imgs[2] || "", sizesStr, item.comment || ""]);
+  sheet.appendRow([newId, item.name, item.shortForm || "", imgs[0] || "", imgs[1] || "", imgs[2] || "", sizesStr, item.comment || "", colorsStr]);
   return jsonResponse(200, { status: "success", message: "Item added.", id: newId });
 }
 
