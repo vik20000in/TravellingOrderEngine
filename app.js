@@ -884,6 +884,7 @@ function renderItemList(items) {
           <div class="variety-card-name">${item.name}</div>
           ${item.shortForm ? `<div class="variety-card-short">${item.shortForm}</div>` : ""}
           ${colorsHtml}
+          ${item.price !== "" && item.price !== undefined ? `<div class="item-card-price">₹ ${item.price}</div>` : ""}
           ${sizeSummary ? `<div class="item-card-variety-sizes">${sizeSummary}</div>` : ""}
           ${item.comment ? `<div class="item-card-comment">${item.comment}</div>` : ""}
         </div>
@@ -1058,6 +1059,7 @@ function openItemForm(item = null) {
   document.getElementById("itemImage2").value = "";
   document.getElementById("itemImage3").value = "";
   document.getElementById("itemComment").value = "";
+  document.getElementById("itemPrice").value = "";
   document.getElementById("itemImagePreviews").innerHTML = "";
   document.getElementById("itemColorInput").value = "";
   window._itemColors = [];
@@ -1081,6 +1083,7 @@ function openItemForm(item = null) {
     if (item.images && item.images[1]) document.getElementById("itemImage2").value = item.images[1];
     if (item.images && item.images[2]) document.getElementById("itemImage3").value = item.images[2];
     document.getElementById("itemComment").value = item.comment || "";
+    document.getElementById("itemPrice").value = item.price !== undefined && item.price !== "" ? item.price : "";
     // Populate colors
     window._itemColors = item.colors || [];
     renderColorChips();
@@ -1146,6 +1149,7 @@ async function saveItem() {
     images:    images,
     sizes:     sizes,
     colors:    window._itemColors || [],
+    price:     document.getElementById("itemPrice").value.trim(),
     comment:   document.getElementById("itemComment").value.trim()
   };
 
