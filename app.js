@@ -551,6 +551,7 @@ function switchPage(page) {
 
   // Load master data when switching to that page
   if (page === "master") {
+    loadColorMaster();
     loadVarieties();
     loadItems();
   }
@@ -945,47 +946,86 @@ function updateItemImagePreviews() {
 
 // ─── ITEM COLOR HELPERS ─────────────────────────────────────
 
-/** Current colors being edited (array of strings). */
+/** Master color list loaded from the Colors sheet. */
+let colorMasterList = [];
+
+/** Current selected colors for the item being edited. */
 window._itemColors = [];
 
 /**
- * Render color tags in the item form.
+ * Load the master color list from backend.
  */
-function renderItemColorTags() {
-  const container = document.getElementById("itemColorTags");
-  if (!container) return;
-  container.innerHTML = (window._itemColors || []).map((c, i) =>
-    `<span class="color-tag">${c}<span class="remove-color" onclick="removeItemColor(${i})">&times;</span></span>`
-  ).join("");
+async function loadColorMaster() {
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "getColors", api_key: API_KEY }),
+      mode: "cors"
+    });
+    const data = await resp.json();
+    if (data.status === "success" && data.colors) {
+      colorMasterList = data.colors;
+    }
+  } catch (err) {
+    console.error("Load colors error:", err);
+  }
 }
 
 /**
- * Add a color from the input field.
+ * Render selectable color chips in the item form.
+ * All master colors shown as chips; selected ones are highlighted.
+ * For new items, all colors are selected by default.
  */
-function addItemColor() {
+function renderColorChips() {
+  const container = document.getElementById("itemColorChips");
+  if (!container) return;
+
+  // Merge master list + any custom colors the item has that aren't in master
+  const allColors = [...colorMasterList];
+  (window._itemColors || []).forEach(c => {
+    if (!allColors.some(m => m.toLowerCase() === c.toLowerCase())) {
+      allColors.push(c);
+    }
+  });
+
+  container.innerHTML = allColors.map(c => {
+    const isSelected = (window._itemColors || []).some(s => s.toLowerCase() === c.toLowerCase());
+    return `<span class="color-chip ${isSelected ? "selected" : ""}" onclick="toggleItemColor(this, '${c.replace(/'/g, "\\'")}')">${isSelected ? '<span class="chip-check">✓</span>' : ""}${c}</span>`;
+  }).join("");
+}
+
+/**
+ * Toggle a color chip on/off.
+ */
+function toggleItemColor(el, color) {
+  const idx = window._itemColors.findIndex(c => c.toLowerCase() === color.toLowerCase());
+  if (idx >= 0) {
+    window._itemColors.splice(idx, 1);
+  } else {
+    window._itemColors.push(color);
+  }
+  renderColorChips();
+}
+
+/**
+ * Add a custom color not in the master list.
+ */
+function addCustomItemColor() {
   const inp = document.getElementById("itemColorInput");
   const val = inp.value.trim();
   if (!val) return;
-  if (!window._itemColors) window._itemColors = [];
-  // Avoid duplicates (case-insensitive)
+  // Avoid duplicates
   if (window._itemColors.some(c => c.toLowerCase() === val.toLowerCase())) {
-    showToast("Color already added.", "error");
+    showToast("Color already selected.", "error");
     inp.value = "";
     inp.focus();
     return;
   }
   window._itemColors.push(val);
-  renderItemColorTags();
+  renderColorChips();
   inp.value = "";
   inp.focus();
-}
-
-/**
- * Remove a color by index.
- */
-function removeItemColor(index) {
-  window._itemColors.splice(index, 1);
-  renderItemColorTags();
 }
 
 /**
@@ -997,7 +1037,7 @@ document.addEventListener("DOMContentLoaded", () => {
     colorInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        addItemColor();
+        addCustomItemColor();
       }
     });
   }
@@ -1019,7 +1059,6 @@ function openItemForm(item = null) {
   document.getElementById("itemImage3").value = "";
   document.getElementById("itemComment").value = "";
   document.getElementById("itemImagePreviews").innerHTML = "";
-  document.getElementById("itemColorTags").innerHTML = "";
   document.getElementById("itemColorInput").value = "";
   window._itemColors = [];
 
@@ -1044,13 +1083,14 @@ function openItemForm(item = null) {
     document.getElementById("itemComment").value = item.comment || "";
     // Populate colors
     window._itemColors = item.colors || [];
-    renderItemColorTags();
+    renderColorChips();
     buildSizesPerVarietyUI(item.sizes || {}, false);
     updateItemImagePreviews();
   } else {
     title.textContent = "Add New Item";
-    window._itemColors = [];
-    renderItemColorTags();
+    // Default: select all master colors
+    window._itemColors = [...colorMasterList];
+    renderColorChips();
     buildSizesPerVarietyUI({}, true);
   }
 

@@ -19,6 +19,9 @@ const VARIETY_SHEET = "Varieties";
 /** Name of the Google Sheet tab for Item master data */
 const ITEM_SHEET = "Items";
 
+/** Name of the Google Sheet tab for Color master list */
+const COLOR_SHEET = "Colors";
+
 // ─── doPost – MAIN ENTRY POINT ──────────────────────────────
 
 /**
@@ -56,6 +59,7 @@ function doPost(e) {
     if (action === "getItems")      return getItems();
     if (action === "saveItem")      return saveItem(payload);
     if (action === "deleteItem")    return deleteItem(payload);
+    if (action === "getColors")     return getColors();
     if (action === "uploadImage")   return uploadImage(payload);
 
     // Default: submit orders
@@ -433,6 +437,43 @@ function deleteItem(payload) {
 }
 
 // ─── IMAGE UPLOAD ───────────────────────────────────────────
+
+// ─── COLOR MASTER LIST ──────────────────────────────────────
+
+/**
+ * Ensures the Colors sheet exists with proper header.
+ * Single column: Color
+ */
+function getOrCreateColorSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(COLOR_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(COLOR_SHEET);
+    sheet.appendRow(["Color"]);
+    sheet.getRange(1, 1, 1, 1).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    // Seed defaults
+    var defaults = [["Red"],["Blue"],["Green"],["Yellow"],["White"],["Black"],["Maroon"],["Saffron"]];
+    sheet.getRange(2, 1, defaults.length, 1).setValues(defaults);
+  }
+  return sheet;
+}
+
+/**
+ * Returns all colors from the Colors sheet.
+ */
+function getColors() {
+  var sheet = getOrCreateColorSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return jsonResponse(200, { status: "success", colors: [] });
+  }
+  var data = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  var colors = data.map(function(row) { return row[0].toString().trim(); }).filter(function(c) { return c.length > 0; });
+  return jsonResponse(200, { status: "success", colors: colors });
+}
+
+// ─── IMAGE UPLOAD (continued) ───────────────────────────────
 
 /**
  * Receives a base64-encoded image, saves it to Google Drive,

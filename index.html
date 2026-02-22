@@ -145,13 +145,15 @@
           </div>
 
           <div class="form-group">
-            <label for="itemColors">Colors</label>
+            <label>Colors</label>
             <div id="itemColorsContainer" class="colors-container">
-              <div class="colors-input-row">
-                <input type="text" id="itemColorInput" placeholder="Type a color and press Enter or +" autocomplete="off" />
-                <button type="button" class="btn-add-color" onclick="addItemColor()">+</button>
+              <div id="itemColorChips" class="color-chips">
+                <span class="loading-msg">Loading colors…</span>
               </div>
-              <div id="itemColorTags" class="color-tags"></div>
+              <div class="colors-input-row">
+                <input type="text" id="itemColorInput" placeholder="Add custom color…" autocomplete="off" />
+                <button type="button" class="btn-add-color" onclick="addCustomItemColor()">+</button>
+              </div>
             </div>
           </div>
 
