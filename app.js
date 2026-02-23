@@ -101,7 +101,7 @@ function renderOrderGrid() {
       : "";
     header.innerHTML = `
       ${thumbImg}
-      <span class="order-item-name">${item.name}${item.shortForm ? ` (${item.shortForm})` : ""}</span>
+      <span class="order-item-name">${item.name}${item.shortForm ? ` (${item.shortForm})` : ""}${item.price ? ` — ₹${item.price}` : ""}</span>
       <span class="order-item-badge" id="orderItemBadge_${iIdx}">0</span>
     `;
     section.appendChild(header);
@@ -137,7 +137,7 @@ function renderOrderGrid() {
       // Header row: Variety | Size1 | Size2 | ... | Total
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
-      headRow.innerHTML = `<th class="th-variety">${vLabel}</th>`;
+      headRow.innerHTML = `<th class="th-variety">${vLabel}${item.price ? ` <span class="th-price">₹${item.price}</span>` : ""}</th>`;
       sizes.forEach(s => {
         const th = document.createElement("th");
         th.className = "th-size";

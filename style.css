@@ -363,6 +363,13 @@ main {
   font-size: 0.8rem !important;
 }
 
+.th-price {
+  color: #e94560;
+  font-weight: 700;
+  font-size: 0.75rem;
+  margin-left: 0.3rem;
+}
+
 .th-size  { min-width: 52px; }
 .th-total { min-width: 50px; background: #e8ecf1; }
 
