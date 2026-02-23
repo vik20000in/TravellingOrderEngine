@@ -1,4 +1,5 @@
 @echo off
-echo Starting TravellingOrder Engine on http://localhost:8080
+echo Starting TravellingOrder Engine (React + Vite)
+echo Dev server at http://localhost:5173
 echo Press Ctrl+C to stop.
-npx http-server . -p 8080 -c-1 -o
+npx vite --open

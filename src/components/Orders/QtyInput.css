@@ -1,0 +1,51 @@
+.qty-input {
+  width: 100%;
+  min-width: 44px;
+  padding: 0.35rem 0.15rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  background: transparent;
+  color: #1a1a2e;
+  transition: border-color 0.15s, background 0.15s;
+  min-height: 36px;
+  box-sizing: border-box;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: inner-spin-button;
+  opacity: 1;
+  height: auto;
+}
+
+.qty-input:hover { border-color: #ccc; background: #f8f9fc; }
+.qty-input:focus { border-color: #533483; background: #fff; }
+.qty-input.has-value { border-color: #00b894; background: #eafff7; }
+
+/* ─── Mobile ─────────────────────────────────────────────── */
+@media (max-width: 499px) {
+  .qty-input {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0.18rem 0.05rem;
+    font-size: 0.82rem;
+  }
+  .qty-input::-webkit-outer-spin-button,
+  .qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .qty-input { -moz-appearance: textfield; appearance: textfield; }
+}
+
+@media (min-width: 500px) and (max-width: 767px) {
+  .qty-input { min-width: 36px; min-height: 32px; font-size: 0.88rem; }
+}
+
+@media (min-width: 768px) {
+  .qty-input { min-width: 52px; padding: 0.4rem 0.25rem; }
+}

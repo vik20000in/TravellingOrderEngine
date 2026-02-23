@@ -1,0 +1,41 @@
+/* ============================================================
+   TRAVELLINGORDER ENGINE – Global Styles (React + Vite)
+   ============================================================ */
+
+/* ---------- RESET & BASE ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f0f2f5;
+  color: #1a1a2e;
+  padding-bottom: 2rem;
+  min-height: 100vh;
+}
+
+/* Make all text inputs, selects, textareas have a clearly visible border */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+select,
+textarea {
+  border: 2px solid #888 !important;
+}
+
+/* ---------- PAGE SECTIONS ---------- */
+.page { display: block; }
+
+.hidden { display: none !important; }
+
+/* ---------- Req asterisk ---------- */
+.req { color: #ff6b6b; }

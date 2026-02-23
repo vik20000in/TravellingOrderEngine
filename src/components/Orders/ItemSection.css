@@ -1,0 +1,56 @@
+.order-item-section {
+  background: #fff;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+}
+
+.order-item-header {
+  background: linear-gradient(90deg, #0f3460, #16213e);
+  color: #fff;
+  padding: 0.7rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.order-item-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  margin-right: 0.6rem;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.order-item-name { flex: 1; }
+
+.order-item-badge {
+  background: #e94560;
+  color: #fff;
+  font-size: 0.78rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  min-width: 28px;
+  text-align: center;
+  display: none;
+}
+
+.order-item-badge.visible { display: inline-block; }
+
+@media (max-width: 499px) {
+  .order-item-header {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.9rem;
+  }
+  .order-item-thumb { width: 28px; height: 28px; margin-right: 0.4rem; }
+  .order-item-name { font-size: 0.85rem; }
+}
