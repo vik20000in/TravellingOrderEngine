@@ -97,7 +97,7 @@ function renderOrderGrid() {
     const header = document.createElement("div");
     header.className = "order-item-header";
     const thumbImg = (item.images && item.images.length > 0 && item.images[0])
-      ? `<img class="order-item-thumb" src="${item.images[0]}" alt="${item.name}" onerror="this.style.display='none'" />`
+      ? `<img class="order-item-thumb" src="${item.images[0]}" alt="${item.name}" onerror="this.style.display='none'" onclick="openLightbox(this.src)" />`
       : "";
     header.innerHTML = `
       ${thumbImg}
@@ -454,6 +454,18 @@ function resetOrderForm() {
   // Clear summary bar
   const bar = document.getElementById("summaryBar");
   if (bar) bar.textContent = "";
+}
+
+// ─── IMAGE LIGHTBOX ─────────────────────────────────────────
+
+function openLightbox(src) {
+  document.getElementById("lightboxImg").src = src;
+  document.getElementById("imageLightbox").classList.remove("hidden");
+}
+
+function closeLightbox() {
+  document.getElementById("imageLightbox").classList.add("hidden");
+  document.getElementById("lightboxImg").src = "";
 }
 
 // ─── TOAST NOTIFICATIONS ────────────────────────────────────

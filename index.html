@@ -301,6 +301,14 @@
     </div>
   </div>
 
+  <!-- ===== IMAGE LIGHTBOX ===== -->
+  <div id="imageLightbox" class="lightbox-overlay hidden" onclick="closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+      <img id="lightboxImg" src="" alt="Preview" />
+    </div>
+  </div>
+
   <!-- ===== TOAST ===== -->
   <div id="toast" class="toast hidden"></div>
 
