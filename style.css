@@ -313,7 +313,6 @@ main {
   outline: none;
   background: transparent;
   color: #1a1a2e;
-  -moz-appearance: textfield;
   transition: border-color 0.15s, background 0.15s;
   min-height: 36px;
   box-sizing: border-box;
@@ -321,8 +320,9 @@ main {
 
 .qty-input::-webkit-outer-spin-button,
 .qty-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  -webkit-appearance: inner-spin-button;
+  opacity: 1;
+  height: auto;
 }
 
 .qty-input:hover { border-color: #ccc; background: #f8f9fc; }

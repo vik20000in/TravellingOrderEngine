@@ -176,8 +176,31 @@ function renderOrderGrid() {
         inp.dataset.size = size;
 
         inp.addEventListener("input", () => {
+          // Strip non-numeric characters
+          inp.value = inp.value.replace(/[^0-9]/g, "");
           let v = parseInt(inp.value, 10);
           if (isNaN(v) || v < 0) { inp.value = ""; }
+          inp.classList.toggle("has-value", v > 0);
+          updateOrderRowTotal(sizes, iIdx, vid);
+          updateOrderItemBadge(iIdx);
+          updateOrderSummaryBar();
+        });
+
+        // Allow only digits, arrows, backspace, delete, tab
+        inp.addEventListener("keydown", (e) => {
+          const allowed = ["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
+          if (allowed.includes(e.key)) return;
+          if (e.key >= "0" && e.key <= "9") return;
+          e.preventDefault();
+        });
+
+        // Scroll wheel to increment/decrement
+        inp.addEventListener("wheel", (e) => {
+          e.preventDefault();
+          let v = parseInt(inp.value, 10) || 0;
+          v += e.deltaY < 0 ? 1 : -1;
+          if (v < 0) v = 0;
+          inp.value = v || "";
           inp.classList.toggle("has-value", v > 0);
           updateOrderRowTotal(sizes, iIdx, vid);
           updateOrderItemBadge(iIdx);
