@@ -218,6 +218,18 @@ main {
   z-index: 10;
 }
 
+/* Item thumbnail in header */
+.order-item-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  margin-right: 0.6rem;
+  border: 2px solid rgba(255,255,255,0.4);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
 .order-item-name { flex: 1; }
 
 .order-item-badge {

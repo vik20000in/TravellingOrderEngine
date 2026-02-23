@@ -96,7 +96,11 @@ function renderOrderGrid() {
     // Item header
     const header = document.createElement("div");
     header.className = "order-item-header";
+    const thumbImg = (item.images && item.images.length > 0 && item.images[0])
+      ? `<img class="order-item-thumb" src="${item.images[0]}" alt="${item.name}" onerror="this.style.display='none'" />`
+      : "";
     header.innerHTML = `
+      ${thumbImg}
       <span class="order-item-name">${item.name}${item.shortForm ? ` (${item.shortForm})` : ""}</span>
       <span class="order-item-badge" id="orderItemBadge_${iIdx}">0</span>
     `;
