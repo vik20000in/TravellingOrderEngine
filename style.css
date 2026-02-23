@@ -297,6 +297,24 @@ main {
   border-radius: 8px;
   margin: 0.6rem 0.5rem;
   overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+
+/* Side image in variety block */
+.variety-side-img {
+  width: 70px;
+  min-height: 60px;
+  object-fit: cover;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-right: 2px solid #b0b8c8;
+}
+
+.variety-main-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* --- Order table wrapper (horizontal scroll) --- */

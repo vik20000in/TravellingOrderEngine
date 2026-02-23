@@ -231,7 +231,21 @@ function renderOrderGrid() {
       // Variety block wrapper (table + color/comment)
       const varietyBlock = document.createElement("div");
       varietyBlock.className = "order-variety-block";
-      varietyBlock.appendChild(tableWrap);
+
+      // Show item image on the side if available
+      if (item.images && item.images.length > 0 && item.images[0]) {
+        const imgSide = document.createElement("img");
+        imgSide.className = "variety-side-img";
+        imgSide.src = item.images[0];
+        imgSide.alt = item.name;
+        imgSide.onerror = function() { this.style.display = 'none'; };
+        imgSide.onclick = function() { openLightbox(this.src); };
+        varietyBlock.appendChild(imgSide);
+      }
+
+      const varietyMain = document.createElement("div");
+      varietyMain.className = "variety-main-content";
+      varietyMain.appendChild(tableWrap);
 
       // Color & Comment row below the table (per variety)
       const notesRow = document.createElement("div");
@@ -246,7 +260,8 @@ function renderOrderGrid() {
           <input type="text" id="ocomment_${iIdx}_${vid}" placeholder="Notes for ${vLabel}…" />
         </div>
       `;
-      varietyBlock.appendChild(notesRow);
+      varietyMain.appendChild(notesRow);
+      varietyBlock.appendChild(varietyMain);
       section.appendChild(varietyBlock);
     });
 
