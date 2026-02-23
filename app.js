@@ -128,6 +128,11 @@ function renderOrderGrid() {
 
       const vLabel = variety.name + (variety.shortForm ? ` (${variety.shortForm})` : "");
 
+      // Mobile variety label (shown only on small screens via CSS)
+      const vLabelMobile = document.createElement("div");
+      vLabelMobile.className = "variety-label-mobile";
+      vLabelMobile.textContent = vLabel + (item.price ? ` — ₹${item.price}` : "");
+
       const tableWrap = document.createElement("div");
       tableWrap.className = "order-table-wrap";
 
@@ -245,6 +250,7 @@ function renderOrderGrid() {
 
       const varietyMain = document.createElement("div");
       varietyMain.className = "variety-main-content";
+      varietyMain.appendChild(vLabelMobile);
       varietyMain.appendChild(tableWrap);
 
       // Color & Comment row below the table (per variety)
