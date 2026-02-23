@@ -1,7 +1,10 @@
 import { NavLink } from 'react-router-dom'
+import { useAppContext } from '../../context/AppContext'
 import './Navbar.css'
 
 export default function Navbar() {
+  const { loadMasterData, masterLoading } = useAppContext()
+
   return (
     <nav id="navBar">
       <div className="nav-brand">TravellingOrder Engine</div>
@@ -12,6 +15,14 @@ export default function Navbar() {
         <NavLink to="/master" className={({ isActive }) => `nav-btn${isActive ? ' active' : ''}`}>
           Master Data
         </NavLink>
+        <button
+          className="nav-btn nav-refresh"
+          onClick={loadMasterData}
+          disabled={masterLoading}
+          title="Refresh data"
+        >
+          <span className={`refresh-icon${masterLoading ? ' spinning' : ''}`}>⟳</span>
+        </button>
       </div>
     </nav>
   )

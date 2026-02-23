@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useAppContext } from '../../context/AppContext'
 import * as api from '../../api/api'
 
 export default function ItemsTab() {
-  const { varieties, setVarieties, items, setItems, colors, setColors, showToast } = useAppContext()
-  const [loading, setLoading] = useState(true)
+  const { varieties, items, setItems, colors, masterLoading: loading, loadMasterData, showToast } = useAppContext()
   const [editing, setEditing] = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -24,26 +23,6 @@ export default function ItemsTab() {
     { fileName: 'No file chosen', status: '' },
     { fileName: 'No file chosen', status: '' },
   ])
-
-  const load = useCallback(async () => {
-    try {
-      const [itms, vars, cols] = await Promise.all([
-        api.getItems(),
-        api.getVarieties(),
-        api.getColors(),
-      ])
-      setItems(itms)
-      setVarieties(vars)
-      setColors(cols)
-    } catch (err) {
-      console.error(err)
-      showToast('Failed to load items.', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [setItems, setVarieties, setColors, showToast])
-
-  useEffect(() => { load() }, [load])
 
   const openForm = (item = null) => {
     setUploadStatuses([
@@ -160,7 +139,7 @@ export default function ItemsTab() {
       })
       showToast(editing?.id ? 'Item updated!' : 'Item added!', 'success')
       closeForm()
-      setTimeout(load, 500)
+      setTimeout(loadMasterData, 500)
     } catch (err) {
       console.error(err)
       showToast('Error saving item.', 'error')
@@ -174,7 +153,7 @@ export default function ItemsTab() {
     try {
       await api.deleteItem(id)
       showToast('Item deleted.', 'success')
-      setTimeout(load, 500)
+      setTimeout(loadMasterData, 500)
     } catch (err) {
       console.error(err)
       showToast('Error deleting item.', 'error')

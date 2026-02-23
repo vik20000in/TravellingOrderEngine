@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useAppContext } from '../../context/AppContext'
 import * as api from '../../api/api'
 import OrderGrid from './OrderGrid'
@@ -6,46 +6,18 @@ import Modal from '../common/Modal'
 import './OrderPage.css'
 
 export default function OrderPage() {
-  const { varieties, setVarieties, items, setItems, customers, setCustomers, colors, setColors, showToast } = useAppContext()
+  const { varieties, items, customers, colors, masterLoading: loading, showToast } = useAppContext()
 
   const [customer, setCustomer] = useState('')
   const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [market, setMarket] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [loading, setLoading] = useState(true)
 
   // quantities: { `${itemIdx}_${varietyId}_${size}`: qty }
   const [quantities, setQuantities] = useState({})
   // perVariety notes: { `${itemIdx}_${varietyId}`: { color, comment } }
   const [notes, setNotes] = useState({})
-
-  // ─── Load master data on mount ────────────────────────────
-  useEffect(() => {
-    let mounted = true
-    async function load() {
-      try {
-        const [vars, itms, cols, custs] = await Promise.all([
-          api.getVarieties(),
-          api.getItems(),
-          api.getColors(),
-          api.getCustomers(),
-        ])
-        if (!mounted) return
-        setVarieties(vars)
-        setItems(itms)
-        setColors(cols)
-        setCustomers(custs)
-      } catch (err) {
-        console.error('Failed to load master data:', err)
-        showToast('Could not load master data. Check connection.', 'error')
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-    load()
-    return () => { mounted = false }
-  }, [setVarieties, setItems, setColors, setCustomers, showToast])
 
   // ─── Quantity change handler ──────────────────────────────
   const setQty = useCallback((key, value) => {

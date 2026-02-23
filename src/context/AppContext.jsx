@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react'
+import * as api from '../api/api'
 
 const AppContext = createContext()
 
@@ -8,6 +9,30 @@ export function AppProvider({ children }) {
   const [items, setItems] = useState([])
   const [customers, setCustomers] = useState([])
   const [colors, setColors] = useState([])
+  const [masterLoading, setMasterLoading] = useState(true)
+
+  // ─── Preload all master data on app start ─────────────────
+  const loadMasterData = useCallback(async () => {
+    setMasterLoading(true)
+    try {
+      const [vars, itms, cols, custs] = await Promise.all([
+        api.getVarieties(),
+        api.getItems(),
+        api.getColors(),
+        api.getCustomers(),
+      ])
+      setVarieties(vars)
+      setItems(itms)
+      setColors(cols)
+      setCustomers(custs)
+    } catch (err) {
+      console.error('Failed to preload master data:', err)
+    } finally {
+      setMasterLoading(false)
+    }
+  }, [setVarieties, setItems, setColors, setCustomers])
+
+  useEffect(() => { loadMasterData() }, [loadMasterData])
 
   // ─── Toast ────────────────────────────────────────────────
   const [toast, setToast] = useState({ visible: false, msg: '', type: 'info' })
@@ -34,6 +59,7 @@ export function AppProvider({ children }) {
         items, setItems,
         customers, setCustomers,
         colors, setColors,
+        masterLoading, loadMasterData,
         toast, showToast,
         lightboxSrc, openLightbox, closeLightbox,
       }}

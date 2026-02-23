@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useAppContext } from '../../context/AppContext'
 import * as api from '../../api/api'
 
 export default function CustomersTab() {
-  const { customers, setCustomers, showToast } = useAppContext()
-  const [loading, setLoading] = useState(true)
+  const { customers, setCustomers, masterLoading: loading, loadMasterData, showToast } = useAppContext()
   const [editing, setEditing] = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -17,20 +16,6 @@ export default function CustomersTab() {
     { fileName: 'No file chosen', status: '' },
     { fileName: 'No file chosen', status: '' },
   ])
-
-  const load = useCallback(async () => {
-    try {
-      const data = await api.getCustomers()
-      setCustomers(data)
-    } catch (err) {
-      console.error(err)
-      showToast('Failed to load customers.', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [setCustomers, showToast])
-
-  useEffect(() => { load() }, [load])
 
   const openForm = (c = null) => {
     setUploadStatuses([
@@ -99,7 +84,7 @@ export default function CustomersTab() {
       })
       showToast(editing?.id ? 'Customer updated!' : 'Customer added!', 'success')
       closeForm()
-      setTimeout(load, 500)
+      setTimeout(loadMasterData, 500)
     } catch (err) {
       console.error(err)
       showToast('Error saving customer.', 'error')
@@ -113,7 +98,7 @@ export default function CustomersTab() {
     try {
       await api.deleteCustomer(id)
       showToast('Customer deleted.', 'success')
-      setTimeout(load, 500)
+      setTimeout(loadMasterData, 500)
     } catch (err) {
       console.error(err)
       showToast('Error deleting customer.', 'error')

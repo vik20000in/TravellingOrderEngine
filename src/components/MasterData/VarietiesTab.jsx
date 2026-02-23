@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useAppContext } from '../../context/AppContext'
 import * as api from '../../api/api'
 
 export default function VarietiesTab() {
-  const { varieties, setVarieties, showToast } = useAppContext()
-  const [loading, setLoading] = useState(true)
+  const { varieties, setVarieties, masterLoading: loading, loadMasterData, showToast } = useAppContext()
   const [editing, setEditing] = useState(null) // null = hidden, {} = new, {...} = edit
   const [saving, setSaving] = useState(false)
 
@@ -17,20 +16,6 @@ export default function VarietiesTab() {
   // Upload state
   const [uploadStatus, setUploadStatus] = useState('')
   const [fileName, setFileName] = useState('No file chosen')
-
-  const load = useCallback(async () => {
-    try {
-      const data = await api.getVarieties()
-      setVarieties(data)
-    } catch (err) {
-      console.error(err)
-      showToast('Failed to load varieties.', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [setVarieties, showToast])
-
-  useEffect(() => { load() }, [load])
 
   const openForm = (v = null) => {
     if (v) {
@@ -65,7 +50,7 @@ export default function VarietiesTab() {
       })
       showToast(editing?.id ? 'Variety updated!' : 'Variety added!', 'success')
       closeForm()
-      setTimeout(load, 500)
+      setTimeout(loadMasterData, 500)
     } catch (err) {
       console.error(err)
       showToast('Error saving variety.', 'error')
@@ -79,7 +64,7 @@ export default function VarietiesTab() {
     try {
       await api.deleteVariety(id)
       showToast('Variety deleted.', 'success')
-      setTimeout(load, 500)
+      setTimeout(loadMasterData, 500)
     } catch (err) {
       console.error(err)
       showToast('Error deleting variety.', 'error')
